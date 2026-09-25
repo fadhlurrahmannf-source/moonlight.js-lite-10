@@ -1,0 +1,15 @@
+{
+  "name": "moonlight-js-lite",
+  "version": "10.1.0",
+  "description": "Moonlight.js Lite 10: a small UCI chess engine in plain JavaScript for Node.js and Web Workers",
+  "main": "moonlight.js",
+  "bin": { "moonlight": "moonlight.js" },
+  "scripts": {
+    "start": "node moonlight.js",
+    "build": "node tools/build-index.js",
+    "test": "node test/perft.test.js && node test/eval-symmetry.test.js && node test/book.test.js"
+  },
+  "keywords": ["chess", "chess-engine", "uci", "javascript", "web-worker"],
+  "license": "MIT",
+  "engines": { "node": ">=14" }
+}

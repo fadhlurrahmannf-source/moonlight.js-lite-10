@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Moonlight Chess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e1424;--panel:#161e33;--panel2:#1d2742;--line:#2a355a;--ink:#e7ecf7;--muted:#8d97b3;
+  --light:#c9d2e6;--dark:#5d6b91;--moon:#f2d479;--sel:rgba(242,212,121,.55);--last:rgba(242,212,121,.32);
+  --brilliant:#2fc3b5;--great:#5b8def;--best:#7cc36b;--excellent:#9bd08a;--good:#a9b8a0;--book:#c49a6c;
+  --inaccuracy:#f0c24b;--mistake:#f08a3c;--blunder:#e5484d;--miss:#e86f9a;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:14px 20px 4px;max-width:1280px;margin:0 auto}
+header h1{margin:0;font-size:24px;font-weight:800;letter-spacing:.2px}
+header h1 span{color:var(--moon)}
+header p{margin:0;color:var(--muted);font-size:14px}
+#notice{max-width:1280px;margin:8px auto 0;padding:0 20px}
+#notice div{background:#3a2a17;border:1px solid #7a5a2b;color:#f3dcb1;border-radius:8px;padding:10px 14px;font-size:14px}
+main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;padding:12px 20px 24px;max-width:1280px;margin:0 auto}
+#boardCol{align-self:start}
+.boardRow{display:flex;gap:10px;align-items:stretch}
+#evalbar{width:26px;border-radius:6px;overflow:hidden;background:#20242e;position:relative;flex:none}
+#evalWhite{position:absolute;left:0;right:0;bottom:0;background:#eef0f4;transition:height .35s ease}
+#evalText{position:absolute;left:0;right:0;font-size:11px;font-weight:800;text-align:center;z-index:1}
+.boardWrap{display:flex;flex-direction:column;gap:8px}
+.plabel{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:14px;min-height:22px}
+.plabel .acc{color:var(--muted);font-weight:600}
+#board{position:relative;width:min(78vh,calc(100vw - 460px),720px);aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));border-radius:6px;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:visible}
+.sq.l{background:var(--light)}.sq.d{background:var(--dark)}
+.sq.last::after,.sq.sel::after{content:"";position:absolute;inset:0}
+.sq.last::after{background:var(--last)}.sq.sel::after{background:var(--sel)}
+.sq.check{background:radial-gradient(circle,#ff5a5f 0%,#d9383d 45%,transparent 75%)!important}
+.sq .dot{position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(20,26,45,.35);z-index:2;pointer-events:none}
+.sq .ring{position:absolute;inset:4%;border-radius:50%;border:5px solid rgba(20,26,45,.35);z-index:2;pointer-events:none}
+.coord{position:absolute;font-size:11px;font-weight:800;z-index:1;pointer-events:none}
+.coord.f{right:4px;bottom:1px}.coord.r{left:4px;top:1px}
+.sq.l .coord{color:var(--dark)}.sq.d .coord{color:var(--light)}
+.pc{position:relative;z-index:3;font-size:calc(min(78vh,calc(100vw - 460px),720px) / 8 * .78);line-height:1;cursor:grab;font-family:"Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans","Arial Unicode MS",serif}
+.pc.w{color:#fbfbf7;-webkit-text-stroke:1.4px #1b1f2b;paint-order:stroke fill}
+.pc.b{color:#1b1f2b;-webkit-text-stroke:1px #1b1f2b}
+.pc.img{width:92%;height:92%;cursor:grab;-webkit-user-drag:none}
+#ghost .pc.img{width:calc(min(78vh,calc(100vw - 460px),720px) / 8 * .92);height:auto}
+.pc.drag{opacity:.35}
+#ghost{position:fixed;line-height:0;pointer-events:none;z-index:50;transform:translate(-50%,-50%);display:none}
+.badge{position:absolute;top:-4%;right:-4%;width:36%;height:36%;border-radius:50%;z-index:4;display:flex;align-items:center;justify-content:center;font-size:clamp(9px,1.3vw,15px);font-weight:800;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+#arrows{position:absolute;inset:0;pointer-events:none;z-index:5}
+aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:800}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:13px;color:var(--muted)}
+select{width:100%;min-width:0;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 12px;font:600 14px Manrope,system-ui,sans-serif;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--moon);color:#1a1a1a;border-color:var(--moon)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible{outline:2px solid var(--moon);outline-offset:2px}
+#status{margin-top:10px;font-size:14px;color:var(--muted);min-height:20px}
+#moves{max-height:260px;overflow-y:auto;display:grid;grid-template-columns:36px 1fr 1fr;font-size:14px;align-content:start}
+#moves .n{color:var(--muted);padding:3px 0}
+#moves .mv{padding:3px 6px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center}
+#moves .mv:hover{background:var(--panel2)}
+#moves .mv.cur{background:#2c3a63}
+.ic{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex:none}
+#comment{margin-top:10px;padding:10px;border-radius:8px;background:var(--panel2);font-size:14px;min-height:42px}
+#comment b{font-weight:800}
+#lines{margin-top:8px;font-size:13px;color:var(--muted)}
+#lines div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lines .sc{display:inline-block;min-width:52px;font-weight:800;color:var(--ink)}
+.accRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.accBox{background:var(--panel2);border-radius:8px;padding:10px;text-align:center}
+.accBox .v{font-size:26px;font-weight:800}
+.accBox .who{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.counts{width:100%;border-collapse:collapse;font-size:14px}
+table.counts td{padding:3px 4px}
+table.counts td:nth-child(1),table.counts td:nth-child(3){text-align:center;width:40px;font-weight:800}
+table.counts td:nth-child(2){display:flex;gap:8px;align-items:center}
+#graph{width:100%;height:110px;display:block;margin-top:10px;border-radius:6px;background:var(--panel2);cursor:pointer}
+#progress{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;margin-top:8px}
+#progress div{height:100%;width:0;background:var(--moon);transition:width .2s}
+.muted{color:var(--muted);font-size:13px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:14px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+#promo button{font-size:40px;padding:4px 12px;margin:4px}
+@media (max-width:900px){
+  main{grid-template-columns:1fr}
+  #board{width:calc(100vw - 76px)}
+  .pc{font-size:calc((100vw - 76px) / 8 * .78)}
+  #ghost .pc.img{width:calc((100vw - 76px) / 8 * .92)}
+}
+@media (prefers-reduced-motion:reduce){#evalWhite,#progress div{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Moon<span>light</span></h1>
+  <p>Play Moonlight Lite 10, pit engines against each other, and review every move.</p>
+</header>
+<div id="notice" hidden><div id="noticeText"></div></div>
+<main>
+  <div id="boardCol" class="boardWrap">
+    <div class="plabel" id="topLabel" style="margin-left:36px"></div>
+    <div class="boardRow">
+      <div id="evalbar" title="Evaluation (Stockfish)"><div id="evalText">0.0</div><div id="evalWhite" style="height:50%"></div></div>
+      <div id="board"><svg id="arrows" viewBox="0 0 8 8"></svg></div>
+    </div>
+    <div class="plabel" id="bottomLabel" style="margin-left:36px"></div>
+  </div>
+  <aside>
+    <div class="card">
+      <h2>Game setup</h2>
+      <div class="row">
+        <label>White <select id="whiteSel"></select></label>
+        <label>Black <select id="blackSel"></select></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label>Engine time per move <select id="timeSel">
+          <option value="200">0.2 seconds</option><option value="500">0.5 seconds</option><option value="1000" selected>1 second</option>
+          <option value="2000">2 seconds</option><option value="5000">5 seconds</option></select></label>
+        <label>Review depth <select id="depthSel">
+          <option value="12">12 (fast, rough)</option><option value="14" selected>14</option><option value="16">16 (more accurate)</option><option value="18">18 (slow)</option></select></label>
+      </div>
+      <div class="btns">
+        <button class="primary" id="newBtn">New game</button>
+        <button id="pauseBtn">Pause</button>
+        <button id="undoBtn">Undo</button>
+        <button id="flipBtn">Flip board</button>
+        <button id="reviewBtn">Review game</button>
+        <button id="pgnBtn">Copy PGN</button>
+        <button id="soundBtn" aria-pressed="true">Sound on</button>
+      </div>
+      <div id="status"></div>
+    </div>
+    <div class="card">
+      <h2>Moves</h2>
+      <div id="moves"></div>
+      <div id="comment" class="muted">Moves appear here. Click any move to jump to it, or use the arrow keys.</div>
+      <div id="lines"></div>
+    </div>
+    <div class="card" id="reviewCard">
+      <h2>Game review</h2>
+      <div id="reviewBody" class="muted">Finish a game or press Review game. Stockfish checks every position and grades each move.</div>
+      <div id="progress" hidden><div></div></div>
+      <canvas id="graph" width="600" height="110" hidden></canvas>
+    </div>
+  </aside>
+</main>
+<div id="ghost"></div>
+<footer style="max-width:1280px;margin:0 auto;padding:0 20px 20px" class="muted">Chess pieces by Colin M.L. Burnett, from <a href="https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces" style="color:inherit">Wikimedia Commons</a>, CC BY-SA 3.0. Analysis by Stockfish.js 10 (GPL), loaded from jsDelivr.</footer>
+<dialog id="promo"><div class="muted" style="margin-bottom:6px">Promote to</div><div id="promoBtns"></div></dialog>
+
+<!-- MOONLIGHT-ENGINE:START (generated by tools/build-index.js from moonlight.js, do not edit here) -->
+<script id="moonlight-engine">
+/*
+ * Moonlight.js Lite 10
+ * A small UCI chess engine written from scratch in plain JavaScript.
+ * Runs in Node.js (stdin/stdout) or in a browser Web Worker (postMessage).
+ */
+'use strict';
+
+const ENGINE_NAME = 'Moonlight.js Lite 10';
+const ENGINE_AUTHOR = 'Moonlight Team';
+
+// ---------- Pieces & board (0x88) ----------
+const PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6;
+const WHITE = 0, BLACK = 8;
+const typeOf = p => p & 7;
+const colorOf = p => p & 8;
+
+const N_OFF = [33, 31, 18, 14, -33, -31, -18, -14];
+const K_OFF = [1, -1, 16, -16, 15, 17, -15, -17];
+const B_DIR = [15, 17, -15, -17];
+const R_DIR = [1, -1, 16, -16];
+
+// Move encoding: from(7) | to(7)<<7 | promo(3)<<14 | flags<<17
+const F_CAP = 1, F_EP = 2, F_CASTLE = 4, F_DOUBLE = 8;
+const mFrom = m => m & 127;
+const mTo = m => (m >> 7) & 127;
+const mPromo = m => (m >> 14) & 7;
+const mFlags = m => m >> 17;
+const makeMove = (f, t, promo, flags) => f | (t << 7) | (promo << 14) | (flags << 17);
+
+const sqName = s => 'abcdefgh'[s & 7] + ((s >> 4) + 1);
+const sqFromName = n => (n.charCodeAt(0) - 97) + (n.charCodeAt(1) - 49) * 16;
+
+// Castling rights: 1=K 2=Q 4=k 8=q
+const CASTLE_MASK = new Uint8Array(128).fill(15);
+CASTLE_MASK[4] = 15 & ~3; CASTLE_MASK[0] = 15 & ~2; CASTLE_MASK[7] = 15 & ~1;
+CASTLE_MASK[116] = 15 & ~12; CASTLE_MASK[112] = 15 & ~8; CASTLE_MASK[119] = 15 & ~4;
+
+// ---------- Zobrist (two 32-bit halves) ----------
+let seed = 0x9E3779B9;
+function rnd() { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed | 0; }
+const ZP1 = new Int32Array(16 * 128), ZP2 = new Int32Array(16 * 128);
+for (let i = 0; i < ZP1.length; i++) { ZP1[i] = rnd(); ZP2[i] = rnd(); }
+const ZC1 = new Int32Array(16), ZC2 = new Int32Array(16);
+for (let i = 0; i < 16; i++) { ZC1[i] = rnd(); ZC2[i] = rnd(); }
+const ZE1 = new Int32Array(8), ZE2 = new Int32Array(8);
+for (let i = 0; i < 8; i++) { ZE1[i] = rnd(); ZE2[i] = rnd(); }
+const ZS1 = rnd(), ZS2 = rnd();
+
+// ---------- Evaluation tables ----------
+const MG_VAL = [0, 82, 337, 365, 477, 1025, 0];
+const EG_VAL = [0, 94, 281, 297, 512, 936, 0];
+const PHASE_W = [0, 0, 1, 1, 2, 4, 0];
+// Tables written from White's view, a8..h8 first row.
+const PST_MG = [null,
+  [ 0,  0,  0,  0,  0,  0,  0,  0,
+   50, 50, 50, 50, 50, 50, 50, 50,
+   10, 10, 20, 30, 30, 20, 10, 10,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5, -5,-10,  0,  0,-10, -5,  5,
+    5, 10, 10,-20,-20, 10, 10,  5,
+    0,  0,  0,  0,  0,  0,  0,  0],
+  [-50,-40,-30,-30,-30,-30,-40,-50,
+   -40,-20,  0,  0,  0,  0,-20,-40,
+   -30,  0, 10, 15, 15, 10,  0,-30,
+   -30,  5, 15, 20, 20, 15,  5,-30,
+   -30,  0, 15, 20, 20, 15,  0,-30,
+   -30,  5, 10, 15, 15, 10,  5,-30,
+   -40,-20,  0,  5,  5,  0,-20,-40,
+   -50,-40,-30,-30,-30,-30,-40,-50],
+  [-20,-10,-10,-10,-10,-10,-10,-20,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -10,  0,  5, 10, 10,  5,  0,-10,
+   -10,  5,  5, 10, 10,  5,  5,-10,
+   -10,  0, 10, 10, 10, 10,  0,-10,
+   -10, 10, 10, 10, 10, 10, 10,-10,
+   -10,  5,  0,  0,  0,  0,  5,-10,
+   -20,-10,-10,-10,-10,-10,-10,-20],
+  [ 0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0],
+  [-20,-10,-10, -5, -5,-10,-10,-20,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -10,  0,  5,  5,  5,  5,  0,-10,
+    -5,  0,  5,  5,  5,  5,  0, -5,
+     0,  0,  5,  5,  5,  5,  0, -5,
+   -10,  5,  5,  5,  5,  5,  0,-10,
+   -10,  0,  5,  0,  0,  0,  0,-10,
+   -20,-10,-10, -5, -5,-10,-10,-20],
+  [-30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -20,-30,-30,-40,-40,-30,-30,-20,
+   -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20]];
+const PST_EG = PST_MG.slice();
+PST_EG[PAWN] =
+  [ 0,  0,  0,  0,  0,  0,  0,  0,
+   90, 90, 90, 90, 90, 90, 90, 90,
+   50, 50, 50, 50, 50, 50, 50, 50,
+   30, 30, 30, 30, 30, 30, 30, 30,
+   15, 15, 15, 15, 15, 15, 15, 15,
+    5,  5,  5,  5,  5,  5,  5,  5,
+    0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0];
+PST_EG[KING] =
+  [-50,-40,-30,-20,-20,-30,-40,-50,
+   -30,-20,-10,  0,  0,-10,-20,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-30,  0,  0,  0,  0,-30,-30,
+   -50,-30,-30,-30,-30,-30,-30,-50];
+// Precompute [piece][sq] -> score (from that piece's own side)
+const MG = [], EG = [];
+for (let p = 0; p < 16; p++) { MG.push(new Int16Array(128)); EG.push(new Int16Array(128)); }
+for (let t = PAWN; t <= KING; t++) for (let s = 0; s < 128; s++) {
+  if (s & 0x88) continue;
+  const r = s >> 4, f = s & 7;
+  const wi = (7 - r) * 8 + f, bi = r * 8 + f;
+  MG[t][s] = MG_VAL[t] + PST_MG[t][wi]; EG[t][s] = EG_VAL[t] + PST_EG[t][wi];
+  MG[t | 8][s] = MG_VAL[t] + PST_MG[t][bi]; EG[t | 8][s] = EG_VAL[t] + PST_EG[t][bi];
+}
+
+
+// ---------- Extra evaluation terms ----------
+const PF_W = new Int8Array(8), PF_B = new Int8Array(8), MINR_W = new Int8Array(8), MAXR_B = new Int8Array(8);
+const ZONE = new Uint8Array(128);
+const PASS_MG = [0, 5, 10, 20, 35, 60, 100, 0];
+const PASS_EG = [0, 10, 20, 40, 70, 120, 200, 0];
+const MOB_CENTER = [0, 0, 4, 6, 6, 12, 0];
+const MOB_MG = [0, 0, 4, 5, 2, 1, 0];
+const MOB_EG = [0, 0, 4, 5, 4, 2, 0];
+const ATT_UNIT = [0, 0, 2, 2, 3, 5, 0];
+const SAFETY = new Int16Array(100);
+for (let i = 0; i < 100; i++) SAFETY[i] = Math.min(500, Math.floor(i * i * 0.8));
+const SEE_VAL = [0, 100, 320, 330, 500, 900, 20000];
+const PLIST = new Int32Array(64);
+const LAZY_MARGIN = 400;
+let LAZY_HIT = false;
+const EC_BITS = 18, EC_MASK = (1 << EC_BITS) - 1;
+const EC_KEY = new Int32Array(1 << EC_BITS), EC_VAL = new Int16Array(1 << EC_BITS), EC_STYLE = new Uint8Array(1 << EC_BITS), EC_SET = new Uint8Array(1 << EC_BITS);
+const SEE_GAIN = new Int32Array(40), SEE_REM = new Int32Array(40), SEE_PC = new Int32Array(40);
+
+// Playing styles. pawnDiscount lowers pawn value in the middlegame so the engine
+// trades pawns for activity more readily; kingW scales king-attack scoring.
+const STYLES = {
+  Normal:     { id: 0, name: 'Normal',     kingW: 1.0, mobW: 1.0,  pawnDiscount: 0,  devBonus: 0,  contempt: 0,  bookGambit: 0.5 },
+  Aggressive: { id: 1, name: 'Aggressive', kingW: 1.5, mobW: 1.2,  pawnDiscount: 8,  devBonus: 8,  contempt: 15, bookGambit: 3 },
+  Gambit:     { id: 2, name: 'Gambit',     kingW: 1.4, mobW: 1.25, pawnDiscount: 20, devBonus: 15, contempt: 25, bookGambit: 8 },
+};
+
+const MATE = 30000, INF = 32000, MAX_PLY = 64;
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+// ---------- Position ----------
+class Position {
+  constructor() {
+    this.board = new Uint8Array(128);
+    this.undo = new Int32Array(8 * 2048);
+    this.sp = 0;
+    this.style = STYLES.Normal;
+    this.setFen(START_FEN);
+  }
+
+  setFen(fen) {
+    const [pl, side, cast, ep, hm, fm] = fen.trim().split(/\s+/);
+    this.board.fill(0);
+    this.king = [0, 0];
+    let r = 7, f = 0;
+    for (const ch of pl) {
+      if (ch === '/') { r--; f = 0; }
+      else if (ch >= '1' && ch <= '8') f += +ch;
+      else {
+        const t = 'pnbrqk'.indexOf(ch.toLowerCase()) + 1;
+        const c = ch === ch.toLowerCase() ? BLACK : WHITE;
+        const s = r * 16 + f;
+        this.board[s] = t | c;
+        if (t === KING) this.king[c >> 3] = s;
+        f++;
+      }
+    }
+    this.side = side === 'b' ? BLACK : WHITE;
+    this.castle = 0;
+    if (cast && cast !== '-') for (const ch of cast) this.castle |= { K: 1, Q: 2, k: 4, q: 8 }[ch] || 0;
+    this.ep = ep && ep !== '-' ? sqFromName(ep) : -1;
+    this.half = +hm || 0;
+    this.full = +fm || 1;
+    this.sp = 0;
+    this.history = [];
+    this.computeHash();
+  }
+
+  fen() {
+    let out = '';
+    for (let r = 7; r >= 0; r--) {
+      let empty = 0;
+      for (let f = 0; f < 8; f++) {
+        const p = this.board[r * 16 + f];
+        if (!p) { empty++; continue; }
+        if (empty) { out += empty; empty = 0; }
+        const ch = ' pnbrqk'[typeOf(p)];
+        out += colorOf(p) ? ch : ch.toUpperCase();
+      }
+      if (empty) out += empty;
+      if (r) out += '/';
+    }
+    let c = '';
+    if (this.castle & 1) c += 'K'; if (this.castle & 2) c += 'Q';
+    if (this.castle & 4) c += 'k'; if (this.castle & 8) c += 'q';
+    return `${out} ${this.side ? 'b' : 'w'} ${c || '-'} ${this.ep >= 0 ? sqName(this.ep) : '-'} ${this.half} ${this.full}`;
+  }
+
+  computeHash() {
+    let h1 = 0, h2 = 0;
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) continue;
+      const p = this.board[s];
+      if (p) { h1 ^= ZP1[p * 128 + s]; h2 ^= ZP2[p * 128 + s]; }
+    }
+    h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+    if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+    if (this.side) { h1 ^= ZS1; h2 ^= ZS2; }
+    this.h1 = h1; this.h2 = h2;
+  }
+
+  attacked(sq, by) {
+    const b = this.board;
+    if (by === WHITE) {
+      let s = sq - 15; if (!(s & 0x88) && b[s] === PAWN) return true;
+      s = sq - 17; if (!(s & 0x88) && b[s] === PAWN) return true;
+    } else {
+      let s = sq + 15; if (!(s & 0x88) && b[s] === (PAWN | 8)) return true;
+      s = sq + 17; if (!(s & 0x88) && b[s] === (PAWN | 8)) return true;
+    }
+    for (let i = 0; i < 8; i++) {
+      let s = sq + N_OFF[i]; if (!(s & 0x88) && b[s] === (KNIGHT | by)) return true;
+      s = sq + K_OFF[i]; if (!(s & 0x88) && b[s] === (KING | by)) return true;
+    }
+    for (let i = 0; i < 4; i++) {
+      let d = B_DIR[i], s = sq + d;
+      while (!(s & 0x88)) {
+        const p = b[s];
+        if (p) { if (colorOf(p) === by && (typeOf(p) === BISHOP || typeOf(p) === QUEEN)) return true; break; }
+        s += d;
+      }
+      d = R_DIR[i]; s = sq + d;
+      while (!(s & 0x88)) {
+        const p = b[s];
+        if (p) { if (colorOf(p) === by && (typeOf(p) === ROOK || typeOf(p) === QUEEN)) return true; break; }
+        s += d;
+      }
+    }
+    return false;
+  }
+
+  inCheck() { return this.attacked(this.king[this.side >> 3], this.side ^ 8); }
+
+  // Pseudo-legal move generation. capturesOnly also includes queen promotions.
+  genMoves(list, capturesOnly) {
+    const b = this.board, us = this.side, them = us ^ 8;
+    let n = 0;
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = b[s];
+      if (!p || colorOf(p) !== us) continue;
+      const t = typeOf(p);
+      if (t === PAWN) {
+        const dir = us ? -16 : 16;
+        const promoRank = us ? 0 : 7;
+        const startRank = us ? 6 : 1;
+        const to = s + dir;
+        if (!(to & 0x88) && !b[to]) {
+          if ((to >> 4) === promoRank) {
+            list[n++] = makeMove(s, to, QUEEN, 0);
+            if (!capturesOnly) { list[n++] = makeMove(s, to, ROOK, 0); list[n++] = makeMove(s, to, BISHOP, 0); list[n++] = makeMove(s, to, KNIGHT, 0); }
+          } else if (!capturesOnly) {
+            list[n++] = makeMove(s, to, 0, 0);
+            if ((s >> 4) === startRank && !b[to + dir]) list[n++] = makeMove(s, to + dir, 0, F_DOUBLE);
+          }
+        }
+        for (let k = 0; k < 2; k++) {
+          const c = s + dir + (k ? 1 : -1);
+          if (c & 0x88) continue;
+          if (b[c] && colorOf(b[c]) === them) {
+            if ((c >> 4) === promoRank) {
+              list[n++] = makeMove(s, c, QUEEN, F_CAP);
+              if (!capturesOnly) { list[n++] = makeMove(s, c, ROOK, F_CAP); list[n++] = makeMove(s, c, BISHOP, F_CAP); list[n++] = makeMove(s, c, KNIGHT, F_CAP); }
+            } else list[n++] = makeMove(s, c, 0, F_CAP);
+          } else if (c === this.ep) list[n++] = makeMove(s, c, 0, F_CAP | F_EP);
+        }
+      } else if (t === KNIGHT || t === KING) {
+        const offs = t === KNIGHT ? N_OFF : K_OFF;
+        for (let i = 0; i < 8; i++) {
+          const to = s + offs[i];
+          if (to & 0x88) continue;
+          const q = b[to];
+          if (!q) { if (!capturesOnly) list[n++] = makeMove(s, to, 0, 0); }
+          else if (colorOf(q) === them) list[n++] = makeMove(s, to, 0, F_CAP);
+        }
+      } else {
+        const dirs = t === BISHOP ? B_DIR : t === ROOK ? R_DIR : K_OFF;
+        for (let i = 0; i < dirs.length; i++) {
+          const d = dirs[i];
+          let to = s + d;
+          while (!(to & 0x88)) {
+            const q = b[to];
+            if (!q) { if (!capturesOnly) list[n++] = makeMove(s, to, 0, 0); }
+            else { if (colorOf(q) === them) list[n++] = makeMove(s, to, 0, F_CAP); break; }
+            to += d;
+          }
+        }
+      }
+    }
+    if (!capturesOnly) {
+      if (us === WHITE) {
+        if ((this.castle & 1) && !b[5] && !b[6] && !this.attacked(4, BLACK) && !this.attacked(5, BLACK) && !this.attacked(6, BLACK))
+          list[n++] = makeMove(4, 6, 0, F_CASTLE);
+        if ((this.castle & 2) && !b[1] && !b[2] && !b[3] && !this.attacked(4, BLACK) && !this.attacked(3, BLACK) && !this.attacked(2, BLACK))
+          list[n++] = makeMove(4, 2, 0, F_CASTLE);
+      } else {
+        if ((this.castle & 4) && !b[117] && !b[118] && !this.attacked(116, WHITE) && !this.attacked(117, WHITE) && !this.attacked(118, WHITE))
+          list[n++] = makeMove(116, 118, 0, F_CASTLE);
+        if ((this.castle & 8) && !b[113] && !b[114] && !b[115] && !this.attacked(116, WHITE) && !this.attacked(115, WHITE) && !this.attacked(114, WHITE))
+          list[n++] = makeMove(116, 114, 0, F_CASTLE);
+      }
+    }
+    return n;
+  }
+
+  // Returns false (and undoes) if the move leaves own king in check.
+  make(m) {
+    const b = this.board, from = mFrom(m), to = mTo(m), fl = mFlags(m), promo = mPromo(m);
+    const piece = b[from], us = this.side;
+    let capSq = to;
+    if (fl & F_EP) capSq = us ? to + 16 : to - 16;
+    const captured = b[capSq];
+    this.pushUndo(m, captured);
+    this.history.push(this.h1);
+
+    let h1 = this.h1, h2 = this.h2;
+    h1 ^= ZP1[piece * 128 + from]; h2 ^= ZP2[piece * 128 + from];
+    if (captured) { h1 ^= ZP1[captured * 128 + capSq]; h2 ^= ZP2[captured * 128 + capSq]; b[capSq] = 0; }
+    const placed = promo ? (promo | us) : piece;
+    b[from] = 0; b[to] = placed;
+    h1 ^= ZP1[placed * 128 + to]; h2 ^= ZP2[placed * 128 + to];
+
+    if (fl & F_CASTLE) {
+      let rf, rt;
+      if (to === 6) { rf = 7; rt = 5; } else if (to === 2) { rf = 0; rt = 3; }
+      else if (to === 118) { rf = 119; rt = 117; } else { rf = 112; rt = 115; }
+      const rook = b[rf];
+      b[rf] = 0; b[rt] = rook;
+      h1 ^= ZP1[rook * 128 + rf] ^ ZP1[rook * 128 + rt];
+      h2 ^= ZP2[rook * 128 + rf] ^ ZP2[rook * 128 + rt];
+    }
+    if (typeOf(piece) === KING) this.king[us >> 3] = to;
+
+    if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+    this.ep = (fl & F_DOUBLE) ? (from + to) >> 1 : -1;
+    if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+
+    h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+    this.castle &= CASTLE_MASK[from] & CASTLE_MASK[to];
+    h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+
+    this.half = (captured || typeOf(piece) === PAWN) ? 0 : this.half + 1;
+    if (us === BLACK) this.full++;
+    this.side ^= 8;
+    h1 ^= ZS1; h2 ^= ZS2;
+    this.h1 = h1; this.h2 = h2;
+
+    if (this.attacked(this.king[us >> 3], this.side)) { this.unmake(); return false; }
+    return true;
+  }
+
+  pushUndo(m, captured) {
+    const u = this.undo, i = this.sp * 8;
+    if (i >= u.length) { const bigger = new Int32Array(u.length * 2); bigger.set(u); this.undo = bigger; return this.pushUndo(m, captured); }
+    u[i] = m; u[i + 1] = captured; u[i + 2] = this.castle; u[i + 3] = this.ep; u[i + 4] = this.half; u[i + 5] = this.h1; u[i + 6] = this.h2;
+    this.sp++;
+  }
+
+  unmake() {
+    this.sp--;
+    const U = this.undo, i = this.sp * 8;
+    const u = { m: U[i], captured: U[i + 1], castle: U[i + 2], ep: U[i + 3], half: U[i + 4], h1: U[i + 5], h2: U[i + 6] };
+    this.history.pop();
+    const b = this.board, m = u.m, from = mFrom(m), to = mTo(m), fl = mFlags(m);
+    this.side ^= 8;
+    const us = this.side;
+    if (us === BLACK) this.full--;
+    let piece = b[to];
+    if (mPromo(m)) piece = PAWN | us;
+    b[from] = piece; b[to] = 0;
+    if (u.captured) b[(fl & F_EP) ? (us ? to + 16 : to - 16) : to] = u.captured;
+    if (fl & F_CASTLE) {
+      let rf, rt;
+      if (to === 6) { rf = 7; rt = 5; } else if (to === 2) { rf = 0; rt = 3; }
+      else if (to === 118) { rf = 119; rt = 117; } else { rf = 112; rt = 115; }
+      b[rf] = b[rt]; b[rt] = 0;
+    }
+    if (typeOf(piece) === KING) this.king[us >> 3] = from;
+    this.castle = u.castle; this.ep = u.ep; this.half = u.half; this.h1 = u.h1; this.h2 = u.h2;
+  }
+
+  makeNull() {
+    this.pushUndo(0, 0);
+    this.history.push(this.h1);
+    if (this.ep >= 0) { this.h1 ^= ZE1[this.ep & 7]; this.h2 ^= ZE2[this.ep & 7]; }
+    this.ep = -1;
+    this.side ^= 8; this.h1 ^= ZS1; this.h2 ^= ZS2;
+    this.half++;
+  }
+
+  unmakeNull() {
+    this.sp--;
+    const U = this.undo, i = this.sp * 8;
+    const u = { ep: U[i + 3], half: U[i + 4], h1: U[i + 5], h2: U[i + 6] };
+    this.history.pop();
+    this.side ^= 8;
+    this.ep = u.ep; this.half = u.half; this.h1 = u.h1; this.h2 = u.h2;
+  }
+
+  isRepetition() {
+    const h = this.history, n = h.length;
+    for (let i = n - 2; i >= 0 && i >= n - this.half; i -= 2) if (h[i] === this.h1) return true;
+    return false;
+  }
+
+  hasNonPawn(side) {
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = this.board[s];
+      if (p && colorOf(p) === side && typeOf(p) !== PAWN && typeOf(p) !== KING) return true;
+    }
+    return false;
+  }
+
+  evaluate(alpha = -INF, beta = INF) {
+    const ci = this.h1 & EC_MASK;
+    if (EC_KEY[ci] === this.h2 && EC_STYLE[ci] === this.style.id && EC_SET[ci]) return EC_VAL[ci];
+    LAZY_HIT = false;
+    const v = this.evaluateFull(alpha, beta);
+    if (!LAZY_HIT) { EC_KEY[ci] = this.h2; EC_VAL[ci] = v; EC_STYLE[ci] = this.style.id; EC_SET[ci] = 1; }
+    return v;
+  }
+
+  evaluateFull(alpha, beta) {
+    const b = this.board, st = this.style;
+    let mg = 0, eg = 0, phase = 0, wb = 0, bb = 0;
+    // pawn structure maps
+    PF_W.fill(0); PF_B.fill(0); MINR_W.fill(8); MAXR_B.fill(-1);
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = b[s];
+      if (p === PAWN) { const f = s & 7, r = s >> 4; PF_W[f]++; if (r < MINR_W[f]) MINR_W[f] = r; }
+      else if (p === (PAWN | 8)) { const f = s & 7, r = s >> 4; PF_B[f]++; if (r > MAXR_B[f]) MAXR_B[f] = r; }
+    }
+    // king zones
+    ZONE.fill(0);
+    const wk = this.king[0], bk = this.king[1];
+    for (let i = 0; i < 8; i++) {
+      let s = wk + K_OFF[i]; if (!(s & 0x88)) ZONE[s] |= 1;
+      s = bk + K_OFF[i]; if (!(s & 0x88)) ZONE[s] |= 2;
+    }
+    ZONE[wk] |= 1; ZONE[bk] |= 2;
+    if (!((wk + 32) & 0x88)) ZONE[wk + 32] |= 1;
+    if (!((bk - 32) & 0x88)) ZONE[bk - 32] |= 2;
+    let attW = 0, attB = 0, unitsW = 0, unitsB = 0; // attacks ON the white / black king
+    let mobMg = 0, mobEg = 0, dev = 0, np = 0;
+
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = b[s];
+      if (!p) continue;
+      const t = typeOf(p), black = colorOf(p) !== 0, sign = black ? -1 : 1;
+      phase += PHASE_W[t];
+      mg += sign * MG[p][s]; eg += sign * EG[p][s];
+      const f = s & 7, r = s >> 4;
+      if (t === PAWN) {
+        mg -= sign * st.pawnDiscount;
+        const own = black ? PF_B : PF_W;
+        if (own[f] > 1) { mg -= sign * 6; eg -= sign * 12; }
+        if ((f === 0 || !own[f - 1]) && (f === 7 || !own[f + 1])) { mg -= sign * 10; eg -= sign * 14; }
+        let passed = true;
+        for (let ff = Math.max(0, f - 1); ff <= Math.min(7, f + 1); ff++) {
+          if (!black && MAXR_B[ff] > r) { passed = false; break; }
+          if (black && MINR_W[ff] < r) { passed = false; break; }
+        }
+        if (passed) { const rr = black ? 7 - r : r; mg += sign * PASS_MG[rr]; eg += sign * PASS_EG[rr]; }
+        continue;
+      }
+      if (t === KING) continue;
+      if (t === BISHOP) { if (black) bb++; else wb++; }
+      PLIST[np++] = s;
+    }
+    {
+      if (wb >= 2) { mg += 30; eg += 50; }
+      if (bb >= 2) { mg -= 30; eg -= 50; }
+      const ph = phase > 24 ? 24 : phase;
+      const quick = (((mg * ph + eg * (24 - ph)) / 24) | 0) * (this.side ? -1 : 1) + 12;
+      if (quick - LAZY_MARGIN >= beta || quick + LAZY_MARGIN <= alpha) { LAZY_HIT = true; return quick; }
+    }
+    for (let pi = 0; pi < np; pi++) {
+      const s = PLIST[pi], p = b[s], t = typeOf(p), black = colorOf(p) !== 0, sign = black ? -1 : 1;
+      const f = s & 7, r = s >> 4;
+      if (st.devBonus && (t === KNIGHT || t === BISHOP) && r !== (black ? 7 : 0)) dev += sign * st.devBonus;
+      // mobility + king attack
+      const enemyZoneBit = black ? 1 : 2;
+      let mob = 0, hits = 0;
+      if (t === KNIGHT) {
+        for (let i = 0; i < 8; i++) {
+          const to = s + N_OFF[i];
+          if (to & 0x88) continue;
+          const q = b[to];
+          if (!q || (colorOf(q) !== 0) !== black) mob++;
+          if (ZONE[to] & enemyZoneBit) hits++;
+        }
+      } else {
+        const dirs = t === BISHOP ? B_DIR : t === ROOK ? R_DIR : K_OFF;
+        for (let i = 0; i < dirs.length; i++) {
+          const d = dirs[i];
+          let to = s + d;
+          while (!(to & 0x88)) {
+            const q = b[to];
+            if (ZONE[to] & enemyZoneBit) hits++;
+            if (!q) mob++;
+            else { if ((colorOf(q) !== 0) !== black) mob++; break; }
+            to += d;
+          }
+        }
+        if (t === ROOK) {
+          const own = black ? PF_B : PF_W, opp = black ? PF_W : PF_B;
+          if (!own[f]) { if (!opp[f]) { mg += sign * 25; eg += sign * 10; } else { mg += sign * 12; eg += sign * 5; } }
+        }
+      }
+      const c = MOB_CENTER[t];
+      mobMg += sign * (mob - c) * MOB_MG[t]; mobEg += sign * (mob - c) * MOB_EG[t];
+      if (hits) {
+        if (black) { attW++; unitsW += hits * ATT_UNIT[t]; }
+        else { attB++; unitsB += hits * ATT_UNIT[t]; }
+      }
+    }
+    mg += (mobMg * st.mobW) | 0; eg += (mobEg * st.mobW) | 0;
+    mg += dev;
+    // king safety: pawn shield + attackers
+    mg += this.shield(wk, WHITE) - this.shield(bk, BLACK);
+    if (attW >= 2) mg -= (SAFETY[Math.min(unitsW, 99)] * st.kingW) | 0;
+    if (attB >= 2) mg += (SAFETY[Math.min(unitsB, 99)] * st.kingW) | 0;
+    if (phase > 24) phase = 24;
+    const score = ((mg * phase + eg * (24 - phase)) / 24) | 0;
+    return (this.side ? -score : score) + 12;
+  }
+
+  shield(k, color) {
+    const r = k >> 4, f = k & 7, b = this.board;
+    if (color === WHITE ? r > 1 : r < 6) return -15;
+    const dir = color === WHITE ? 16 : -16, pawn = PAWN | color;
+    let bonus = 0;
+    for (let ff = Math.max(0, f - 1); ff <= Math.min(7, f + 1); ff++) {
+      const s1 = r * 16 + ff + dir, s2 = s1 + dir;
+      if (!(s1 & 0x88) && b[s1] === pawn) bonus += 14;
+      else if (!(s2 & 0x88) && b[s2] === pawn) bonus += 7;
+      else bonus -= 10;
+    }
+    return bonus;
+  }
+
+  // Static exchange evaluation of a capture (in centipawns, from the mover's view)
+  see(m) {
+    const b = this.board, from = mFrom(m), to = mTo(m);
+    const gain = SEE_GAIN, removed = SEE_REM;
+    let nRem = 0, d = 0;
+    gain[0] = (mFlags(m) & F_EP) ? SEE_VAL[PAWN] : SEE_VAL[typeOf(b[to])];
+    let attackerVal = SEE_VAL[mPromo(m) || typeOf(b[from])];
+    removed[nRem++] = from; SEE_PC[0] = b[from]; b[from] = 0;
+    let side = colorOf(SEE_PC[0]) ^ 8;
+    while (true) {
+      const sq = this.leastAttacker(to, side);
+      if (sq < 0) break;
+      d++;
+      gain[d] = attackerVal - gain[d - 1];
+      if (Math.max(-gain[d - 1], gain[d]) < 0) break;
+      attackerVal = SEE_VAL[typeOf(b[sq])];
+      SEE_PC[nRem] = b[sq]; removed[nRem++] = sq; b[sq] = 0;
+      side ^= 8;
+    }
+    for (let i = 0; i < nRem; i++) b[removed[i]] = SEE_PC[i];
+    while (--d > 0) gain[d - 1] = -Math.max(-gain[d - 1], gain[d]);
+    return gain[0];
+  }
+
+  leastAttacker(sq, by) {
+    const b = this.board;
+    const p1 = by === WHITE ? sq - 15 : sq + 15, p2 = by === WHITE ? sq - 17 : sq + 17;
+    if (!(p1 & 0x88) && b[p1] === (PAWN | by)) return p1;
+    if (!(p2 & 0x88) && b[p2] === (PAWN | by)) return p2;
+    for (let i = 0; i < 8; i++) { const s = sq + N_OFF[i]; if (!(s & 0x88) && b[s] === (KNIGHT | by)) return s; }
+    let rq = -1, qq = -1;
+    for (let i = 0; i < 4; i++) {
+      let s = sq + B_DIR[i];
+      while (!(s & 0x88)) { const p = b[s]; if (p) { if (p === (BISHOP | by)) return s; if (p === (QUEEN | by) && qq < 0) qq = s; break; } s += B_DIR[i]; }
+      s = sq + R_DIR[i];
+      while (!(s & 0x88)) { const p = b[s]; if (p) { if (p === (ROOK | by) && rq < 0) rq = s; if (p === (QUEEN | by) && qq < 0) qq = s; break; } s += R_DIR[i]; }
+    }
+    if (rq >= 0) return rq;
+    if (qq >= 0) return qq;
+    for (let i = 0; i < 8; i++) { const s = sq + K_OFF[i]; if (!(s & 0x88) && b[s] === (KING | by)) return s; }
+    return -1;
+  }
+
+  moveToUci(m) {
+    const p = mPromo(m);
+    return sqName(mFrom(m)) + sqName(mTo(m)) + (p ? ' nbrq'[p - 1] : '');
+  }
+
+  legalMoves() {
+    const list = new Int32Array(256), out = [];
+    const n = this.genMoves(list, false);
+    for (let i = 0; i < n; i++) if (this.make(list[i])) { this.unmake(); out.push(list[i]); }
+    return out;
+  }
+
+  parseMove(str) {
+    for (const m of this.legalMoves()) if (this.moveToUci(m) === str.toLowerCase()) return m;
+    return 0;
+  }
+
+  perft(depth) {
+    if (depth === 0) return 1;
+    const list = new Int32Array(256), n = this.genMoves(list, false);
+    let total = 0;
+    for (let i = 0; i < n; i++) {
+      if (!this.make(list[i])) continue;
+      total += this.perft(depth - 1);
+      this.unmake();
+    }
+    return total;
+  }
+
+  display() {
+    const rows = [];
+    for (let r = 7; r >= 0; r--) {
+      let line = (r + 1) + ' ';
+      for (let f = 0; f < 8; f++) {
+        const p = this.board[r * 16 + f];
+        const ch = p ? ' pnbrqk'[typeOf(p)] : '.';
+        line += ' ' + (p && !colorOf(p) ? ch.toUpperCase() : ch);
+      }
+      rows.push(line);
+    }
+    rows.push('   a b c d e f g h', 'Fen: ' + this.fen());
+    return rows.join('\n');
+  }
+}
+
+// ---------- Search ----------
+const TT_BITS = 20, TT_SIZE = 1 << TT_BITS, TT_MASK = TT_SIZE - 1;
+const TT_EXACT = 1, TT_LOWER = 2, TT_UPPER = 3;
+
+const LMR = [];
+for (let d = 0; d < 64; d++) { LMR.push(new Int8Array(64)); for (let m = 0; m < 64; m++) LMR[d][m] = d && m ? Math.floor(0.75 + Math.log(d) * Math.log(m) / 2.25) : 0; }
+
+class Search {
+  constructor(pos, send) {
+    this.pos = pos;
+    this.send = send;
+    this.ttKey = new Int32Array(TT_SIZE);
+    this.ttMove = new Int32Array(TT_SIZE);
+    this.ttScore = new Int16Array(TT_SIZE);
+    this.ttDepth = new Int8Array(TT_SIZE);
+    this.ttFlag = new Uint8Array(TT_SIZE);
+    this.history = new Int32Array(16 * 128);
+    this.killers = new Int32Array(MAX_PLY * 2);
+    this.contempt = 0;
+    this.quietBuf = [];
+    for (let i = 0; i < MAX_PLY + 1; i++) this.quietBuf.push(new Int32Array(256));
+    this.moveBuf = [];
+    this.scoreBuf = [];
+    for (let i = 0; i < MAX_PLY + 1; i++) { this.moveBuf.push(new Int32Array(256)); this.scoreBuf.push(new Int32Array(256)); }
+  }
+
+  clear() {
+    this.ttKey.fill(0); this.ttMove.fill(0); this.ttFlag.fill(0);
+    this.history.fill(0); this.killers.fill(0);
+  }
+
+  ttStore(depth, score, flag, move, ply) {
+    const i = this.pos.h1 & TT_MASK;
+    if (this.ttFlag[i] && this.ttKey[i] === this.pos.h2 && this.ttDepth[i] > depth && flag !== TT_EXACT) return;
+    if (score > MATE - MAX_PLY) score += ply; else if (score < -MATE + MAX_PLY) score -= ply;
+    this.ttKey[i] = this.pos.h2; this.ttMove[i] = move; this.ttScore[i] = score;
+    this.ttDepth[i] = depth; this.ttFlag[i] = flag;
+  }
+
+  checkTime() {
+    if ((++this.nodes & 2047) === 0 && this.deadline && Date.now() >= this.deadline) this.stopped = true;
+    if (this.maxNodes && this.nodes >= this.maxNodes) this.stopped = true;
+  }
+
+  orderMoves(list, scores, n, ttMove, ply) {
+    const pos = this.pos, b = pos.board;
+    for (let i = 0; i < n; i++) {
+      const m = list[i];
+      if (m === ttMove) scores[i] = 2000000;
+      else if (mFlags(m) & F_CAP) {
+        const victim = (mFlags(m) & F_EP) ? PAWN : typeOf(b[mTo(m)]);
+        const mvv = victim * 100 - typeOf(b[mFrom(m)]);
+        const good = SEE_VAL[typeOf(b[mFrom(m)])] <= SEE_VAL[victim] || pos.see(m) >= 0;
+        scores[i] = (good ? 1000000 : 500000) + mvv;
+      } else if (mPromo(m)) scores[i] = mPromo(m) === QUEEN ? 950000 : -100000;
+      else if (m === this.killers[ply * 2]) scores[i] = 800000;
+      else if (m === this.killers[ply * 2 + 1]) scores[i] = 790000;
+      else scores[i] = this.history[b[mFrom(m)] * 128 + mTo(m)];
+    }
+  }
+
+  drawScore(ply) { return (ply & 1) ? this.contempt : -this.contempt; }
+
+  pick(list, scores, n, i) {
+    let best = i;
+    for (let j = i + 1; j < n; j++) if (scores[j] > scores[best]) best = j;
+    if (best !== i) {
+      const tm = list[i]; list[i] = list[best]; list[best] = tm;
+      const ts = scores[i]; scores[i] = scores[best]; scores[best] = ts;
+    }
+    return list[i];
+  }
+
+  qsearch(alpha, beta, ply) {
+    this.checkTime();
+    if (this.stopped) return 0;
+    const pos = this.pos;
+    const stand = pos.evaluate(alpha, beta);
+    if (ply >= MAX_PLY) return stand;
+    if (stand >= beta) return stand;
+    if (stand > alpha) alpha = stand;
+    const list = this.moveBuf[ply], scores = this.scoreBuf[ply];
+    const n = pos.genMoves(list, true);
+    this.orderMoves(list, scores, n, 0, ply);
+    for (let i = 0; i < n; i++) {
+      const m = this.pick(list, scores, n, i);
+      if (!mPromo(m)) {
+        const victim = (mFlags(m) & F_EP) ? PAWN : typeOf(pos.board[mTo(m)]);
+        if (stand + SEE_VAL[victim] + 200 < alpha) continue;
+        if (scores[i] < 1000000) continue; // losing capture by SEE
+      }
+      if (!pos.make(m)) continue;
+      const score = -this.qsearch(-beta, -alpha, ply + 1);
+      pos.unmake();
+      if (this.stopped) return 0;
+      if (score > alpha) { alpha = score; if (score >= beta) return score; }
+    }
+    return alpha;
+  }
+
+  negamax(depth, alpha, beta, ply, allowNull) {
+    const pos = this.pos;
+    const pvNode = beta - alpha > 1;
+    if (ply > 0) {
+      if (pos.half >= 100 || pos.isRepetition()) return this.drawScore(ply);
+      alpha = Math.max(alpha, -MATE + ply);
+      beta = Math.min(beta, MATE - ply - 1);
+      if (alpha >= beta) return alpha;
+    }
+    const inCheck = pos.inCheck();
+    if (inCheck) depth++;
+    if (depth <= 0 || ply >= MAX_PLY) return this.qsearch(alpha, beta, ply);
+    this.checkTime();
+    if (this.stopped) return 0;
+
+    const ti = pos.h1 & TT_MASK;
+    let ttMove = 0;
+    if (this.ttFlag[ti] && this.ttKey[ti] === pos.h2) {
+      ttMove = this.ttMove[ti];
+      if (ply > 0 && !pvNode && this.ttDepth[ti] >= depth) {
+        let s = this.ttScore[ti];
+        if (s > MATE - MAX_PLY) s -= ply; else if (s < -MATE + MAX_PLY) s += ply;
+        const f = this.ttFlag[ti];
+        if (f === TT_EXACT || (f === TT_LOWER && s >= beta) || (f === TT_UPPER && s <= alpha)) return s;
+      }
+    }
+
+    const staticEval = inCheck ? -INF : pos.evaluate();
+
+    // reverse futility pruning
+    if (!pvNode && !inCheck && depth <= 6 && staticEval - 90 * depth >= beta && Math.abs(beta) < MATE - MAX_PLY) return staticEval;
+
+    // null move pruning (adaptive reduction)
+    if (allowNull && !pvNode && !inCheck && depth >= 3 && staticEval >= beta && pos.hasNonPawn(pos.side)) {
+      const R = 3 + (depth >> 2) + Math.min(3, ((staticEval - beta) / 200) | 0);
+      pos.makeNull();
+      const score = -this.negamax(depth - 1 - R, -beta, -beta + 1, ply + 1, false);
+      pos.unmakeNull();
+      if (this.stopped) return 0;
+      if (score >= beta) return score >= MATE - MAX_PLY ? beta : score;
+    }
+
+    // internal iterative reduction: no hash move at a deep node
+    if (!ttMove && depth >= 5) depth--;
+
+    const list = this.moveBuf[ply], scores = this.scoreBuf[ply], quiets = this.quietBuf[ply];
+    const n = pos.genMoves(list, false);
+    this.orderMoves(list, scores, n, ttMove, ply);
+
+    let best = -INF, bestMove = 0, legal = 0, nQuiet = 0;
+    const origAlpha = alpha;
+    const canPrune = !pvNode && !inCheck;
+    for (let i = 0; i < n; i++) {
+      const m = this.pick(list, scores, n, i);
+      const isCap = (mFlags(m) & F_CAP) !== 0;
+      const quiet = !isCap && !mPromo(m);
+      const killer = m === this.killers[ply * 2] || m === this.killers[ply * 2 + 1];
+      if (canPrune && legal > 0 && best > -MATE + MAX_PLY) {
+        if (quiet && !killer) {
+          // late move pruning
+          if (depth <= 4 && nQuiet >= 3 + depth * depth * 2) continue;
+          // futility pruning
+          if (depth <= 3 && staticEval + 100 + 110 * depth <= alpha) continue;
+        } else if (isCap && depth <= 4 && scores[i] < 1000000 && pos.see(m) < -80 * depth) continue;
+      }
+      if (!pos.make(m)) continue;
+      legal++;
+      if (quiet) quiets[nQuiet++] = m;
+      const givesCheck = pos.inCheck();
+      let score;
+      if (legal === 1) {
+        score = -this.negamax(depth - 1, -beta, -alpha, ply + 1, true);
+      } else {
+        let r = 0;
+        if (depth >= 3 && legal > 2 && quiet && !inCheck && !givesCheck) {
+          r = LMR[Math.min(depth, 63)][Math.min(legal, 63)];
+          if (pvNode) r--;
+          if (killer) r--;
+          const h = this.history[pos.board[mTo(m)] * 128 + mTo(m)];
+          if (h > 20000) r--; else if (h < -5000) r++;
+          r = Math.max(0, Math.min(r, depth - 2));
+        }
+        score = -this.negamax(depth - 1 - r, -alpha - 1, -alpha, ply + 1, true);
+        if (r && score > alpha) score = -this.negamax(depth - 1, -alpha - 1, -alpha, ply + 1, true);
+        if (score > alpha && score < beta) score = -this.negamax(depth - 1, -beta, -alpha, ply + 1, true);
+      }
+      pos.unmake();
+      if (this.stopped) return 0;
+      if (score > best) {
+        best = score; bestMove = m;
+        if (ply === 0) this.rootBest = m;
+        if (score > alpha) {
+          alpha = score;
+          if (score >= beta) {
+            if (quiet) {
+              if (this.killers[ply * 2] !== m) { this.killers[ply * 2 + 1] = this.killers[ply * 2]; this.killers[ply * 2] = m; }
+              const bonus = Math.min(depth * depth, 400);
+              for (let q = 0; q < nQuiet; q++) {
+                const qm = quiets[q], hi = pos.board[mFrom(qm)] * 128 + mTo(qm);
+                this.history[hi] += qm === m ? bonus : -bonus;
+                if (this.history[hi] > 60000 || this.history[hi] < -60000) for (let k = 0; k < this.history.length; k++) this.history[k] >>= 1;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!legal) return inCheck ? -MATE + ply : this.drawScore(ply);
+    const flag = best >= beta ? TT_LOWER : best > origAlpha ? TT_EXACT : TT_UPPER;
+    this.ttStore(depth, best, flag, bestMove, ply);
+    return best;
+  }
+
+  pvLine(first, maxLen) {
+    const pos = this.pos, line = [];
+    let m = first, made = 0;
+    while (m && line.length < maxLen) {
+      const legal = pos.legalMoves();
+      if (!legal.includes(m)) break;
+      line.push(pos.moveToUci(m));
+      pos.make(m); made++;
+      const i = pos.h1 & TT_MASK;
+      m = (this.ttFlag[i] && this.ttKey[i] === pos.h2) ? this.ttMove[i] : 0;
+    }
+    while (made--) pos.unmake();
+    return line;
+  }
+
+  go({ depth = 64, movetime = 0, nodes = 0 } = {}) {
+    const start = Date.now();
+    this.nodes = 0; this.stopped = false; this.maxNodes = nodes;
+    this.deadline = movetime ? start + movetime : 0;
+    this.killers.fill(0);
+    const legal = this.pos.legalMoves();
+    if (!legal.length) { this.send('info depth 0 score ' + (this.pos.inCheck() ? 'mate 0' : 'cp 0')); this.send('bestmove (none)'); return null; }
+    let best = legal[0], lastScore = 0;
+    for (let d = 1; d <= Math.min(depth, MAX_PLY - 1); d++) {
+      let score, window = 30;
+      let alpha = d >= 5 ? Math.max(-INF, lastScore - window) : -INF;
+      let beta = d >= 5 ? Math.min(INF, lastScore + window) : INF;
+      while (true) {
+        this.rootBest = 0;
+        score = this.negamax(d, alpha, beta, 0, true);
+        if (this.stopped) break;
+        if (score <= alpha) { alpha = Math.max(-INF, alpha - window); window *= 2; }
+        else if (score >= beta) { if (this.rootBest) best = this.rootBest; beta = Math.min(INF, beta + window); window *= 2; }
+        else break;
+        if (window > 800) { alpha = -INF; beta = INF; }
+      }
+      if (this.stopped && d > 1) break;
+      if (this.rootBest) best = this.rootBest;
+      lastScore = score;
+      const ms = Date.now() - start;
+      let sc;
+      if (score > MATE - MAX_PLY) sc = 'mate ' + Math.ceil((MATE - score) / 2);
+      else if (score < -MATE + MAX_PLY) sc = 'mate -' + Math.ceil((MATE + score) / 2);
+      else sc = 'cp ' + score;
+      this.send(`info depth ${d} score ${sc} nodes ${this.nodes} nps ${Math.round(this.nodes * 1000 / Math.max(1, ms))} time ${ms} pv ${this.pvLine(best, d).join(' ')}`);
+      if (this.stopped) break;
+      if (Math.abs(score) > MATE - MAX_PLY && d > 2) break;
+      if (this.deadline && Date.now() - start > (this.deadline - start) * 0.55) break;
+    }
+    const uci = this.pos.moveToUci(best);
+    this.send('bestmove ' + uci);
+    return { move: uci, score: lastScore };
+  }
+}
+
+
+// ---------- Opening book ----------
+// Format per line: "G|Name|moves" (G = gambit line) or "N|Name|moves".
+const BOOK_LINES = `
+G|King's Gambit Accepted|e2e4 e7e5 f2f4 e5f4 g1f3 g7g5 h2h4 g5g4 f3e5
+G|Falkbeer Countergambit|e2e4 e7e5 f2f4 d7d5 e4d5 e5e4
+G|Evans Gambit|e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 b2b4 c5b4 c2c3 b4a5 d2d4
+G|Danish Gambit|e2e4 e7e5 d2d4 e5d4 c2c3 d4c3 f1c4 c3b2 c1b2
+G|Smith-Morra Gambit|e2e4 c7c5 d2d4 c5d4 c2c3 d4c3 b1c3 b8c6 g1f3 d7d6 f1c4
+G|Scotch Gambit|e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f1c4 f8c5 e1g1
+G|Goring Gambit|e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 c2c3 d4c3 b1c3 f8b4 f1c4
+G|Vienna Gambit|e2e4 e7e5 b1c3 g8f6 f2f4 d7d5 f4e5 f6e4 g1f3
+G|Blackmar-Diemer Gambit|d2d4 d7d5 e2e4 d5e4 b1c3 g8f6 f2f3 e4f3 g1f3
+G|Queen's Gambit Accepted|d2d4 d7d5 c2c4 d5c4 g1f3 g8f6 e2e3 e7e6 f1c4 c7c5 e1g1
+G|Benko Gambit|d2d4 g8f6 c2c4 c7c5 d4d5 b7b5 c4b5 a7a6 b5a6 c8a6 b1c3 d7d6
+G|Budapest Gambit|d2d4 g8f6 c2c4 e7e5 d4e5 f6g4 c1f4 b8c6 g1f3 f8b4 b1d2 d8e7
+G|Albin Countergambit|d2d4 d7d5 c2c4 e7e5 d4e5 d5d4 g1f3 b8c6 g2g3
+G|Marshall Attack|e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 e8g8 c2c3 d7d5 e4d5 f6d5 f3e5 c6e5 e1e5 c7c6
+G|Two Knights Defense|e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 f3g5 d7d5 e4d5 c6a5 c4b5 c7c6 d5c6 b7c6 b5e2 h7h6 g5f3 e5e4 f3e5
+N|Ruy Lopez Closed|e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 d7d6 c2c3 e8g8 h2h3
+N|Ruy Lopez Berlin|e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1 f6e4 d2d4 e4d6 b5c6 d7c6 d4e5 d6f5 d1d8 e8d8
+N|Italian Game|e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 c2c3 g8f6 d2d3 d7d6 e1g1 e8g8
+N|Scotch Game|e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 e4e5 d8e7 d1e2 f6d5 c2c4
+N|Petrov Defense|e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d2d4 d6d5 f1d3
+N|Sicilian Najdorf|e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 c1e3 e7e5 d4b3 c8e6 f2f3
+N|Sicilian Dragon|e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 g7g6 c1e3 f8g7 f2f3 e8g8 d1d2 b8c6 f1c4
+N|Sicilian Sveshnikov|e2e4 c7c5 g1f3 b8c6 d2d4 c5d4 f3d4 g8f6 b1c3 e7e5 d4b5 d7d6 c1g5 a7a6 b5a3 b7b5
+N|Sicilian Alapin|e2e4 c7c5 c2c3 g8f6 e4e5 f6d5 d2d4 c5d4 g1f3 b8c6 c3d4
+N|French Winawer|e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7
+N|French Advance|e2e4 e7e6 d2d4 d7d5 e4e5 c7c5 c2c3 b8c6 g1f3 d8b6 a2a3
+N|Caro-Kann Classical|e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 c8f5 e4g3 f5g6 h2h4 h7h6 g1f3 b8d7 h4h5 g6h7
+N|Caro-Kann Advance|e2e4 c7c6 d2d4 d7d5 e4e5 c8f5 g1f3 e7e6 f1e2 c6c5
+N|Scandinavian Defense|e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5
+N|Pirc Defense|e2e4 d7d6 d2d4 g8f6 b1c3 g7g6 g1f3 f8g7 f1e2 e8g8 e1g1
+N|Alekhine Defense|e2e4 g8f6 e4e5 f6d5 d2d4 d7d6 g1f3 c8g4 f1e2 e7e6
+N|Queen's Gambit Declined|d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 c1g5 f8e7 e2e3 e8g8 g1f3 h7h6 g5h4 b7b6
+N|Slav Defense|d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 d5c4 a2a4 c8f5 e2e3 e7e6 f1c4
+N|Semi-Slav Meran|d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 e7e6 e2e3 b8d7 f1d3 d5c4 d3c4 b7b5
+N|Nimzo-Indian|d2d4 g8f6 c2c4 e7e6 b1c3 f8b4 e2e3 e8g8 f1d3 d7d5 g1f3 c7c5 e1g1
+N|Queen's Indian|d2d4 g8f6 c2c4 e7e6 g1f3 b7b6 g2g3 c8a6 b2b3 f8b4 c1d2 b4e7
+N|King's Indian|d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3 e8g8 f1e2 e7e5 e1g1 b8c6 d4d5 c6e7
+N|Grunfeld Defense|d2d4 g8f6 c2c4 g7g6 b1c3 d7d5 c4d5 f6d5 e2e4 d5c3 b2c3 f8g7 g1f3 c7c5 f1e2
+N|Catalan|d2d4 g8f6 c2c4 e7e6 g2g3 d7d5 f1g2 f8e7 g1f3 e8g8 e1g1 d5c4 d1c2 a7a6
+N|London System|d2d4 d7d5 c1f4 g8f6 e2e3 c7c5 c2c3 b8c6 b1d2 e7e6 g1f3 f8d6 f4g3
+N|Dutch Leningrad|d2d4 f7f5 g2g3 g8f6 f1g2 g7g6 g1f3 f8g7 e1g1 e8g8 c2c4 d7d6
+N|English Symmetrical|c2c4 c7c5 b1c3 b8c6 g2g3 g7g6 f1g2 f8g7 g1f3 e7e6 e1g1 g8e7
+N|English Reversed Sicilian|c2c4 e7e5 b1c3 g8f6 g1f3 b8c6 g2g3 d7d5 c4d5 f6d5 f1g2 d5b6
+N|Reti Opening|g1f3 d7d5 c2c4 e7e6 g2g3 g8f6 f1g2 f8e7 e1g1 e8g8 b2b3
+N|Modern Benoni|d2d4 g8f6 c2c4 c7c5 d4d5 e7e6 b1c3 e6d5 c4d5 d7d6 e2e4 g7g6 g1f3 f8g7 f1e2 e8g8
+`;
+
+class Book {
+  constructor() { this.map = new Map(); this.lines = 0; this.errors = []; }
+  key(pos) { return pos.h1 + ':' + pos.h2; }
+  // Adds one line; returns number of moves added or -1 if a move was illegal.
+  addLine(name, moves, gambit) {
+    const pos = new Position();
+    const list = moves.trim().split(/\s+/);
+    for (let i = 0; i < list.length; i++) {
+      const m = pos.parseMove(list[i]);
+      if (!m) { this.errors.push(`${name}: illegal move ${list[i]} at ply ${i + 1}`); return -1; }
+      const k = this.key(pos);
+      let e = this.map.get(k);
+      if (!e) { e = new Map(); this.map.set(k, e); }
+      let x = e.get(list[i]);
+      if (!x) { x = { normal: 0, gambit: 0, names: new Set() }; e.set(list[i], x); }
+      if (gambit) x.gambit++; else x.normal++;
+      x.names.add(name);
+      pos.make(m);
+    }
+    this.lines++;
+    return list.length;
+  }
+  load(text) {
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const parts = line.split('|');
+      if (parts.length === 3) this.addLine(parts[1], parts[2], parts[0].toUpperCase() === 'G');
+      else this.addLine('Custom', parts[parts.length - 1], false);
+    }
+  }
+  probe(pos, gambitWeight) {
+    const e = this.map.get(this.key(pos));
+    if (!e) return null;
+    const cands = [];
+    let total = 0;
+    for (const [uci, x] of e) {
+      const w = x.normal + x.gambit * gambitWeight;
+      if (w <= 0) continue;
+      cands.push([uci, w, x]); total += w;
+    }
+    if (!total) return null;
+    let r = Math.random() * total;
+    for (const [uci, w, x] of cands) { r -= w; if (r <= 0) return { move: uci, names: [...x.names] }; }
+    const last = cands[cands.length - 1];
+    return { move: last[0], names: [...last[2].names] };
+  }
+}
+
+// ---------- UCI ----------
+class Engine {
+  constructor(send) {
+    this.send = send || (() => {});
+    this.pos = new Position();
+    this.search = new Search(this.pos, this.send);
+    this.book = new Book();
+    this.book.load(BOOK_LINES);
+    this.ownBook = true;
+    this.contemptSet = null;
+    this.setStyle('Normal');
+  }
+
+  setStyle(name) {
+    const key = Object.keys(STYLES).find(k => k.toLowerCase() === String(name).toLowerCase());
+    if (!key) { this.send('info string unknown style ' + name); return; }
+    this.style = STYLES[key];
+    this.pos.style = this.style;
+    this.search.contempt = this.contemptSet !== null ? this.contemptSet : this.style.contempt;
+  }
+
+  setOption(tok) {
+    const line = tok.join(' ');
+    const m = line.match(/^setoption\s+name\s+(.+?)(?:\s+value\s+(.*))?$/i);
+    if (!m) return;
+    const name = m[1].trim().toLowerCase(), value = (m[2] || '').trim();
+    if (name === 'style') this.setStyle(value);
+    else if (name === 'ownbook') this.ownBook = value.toLowerCase() === 'true';
+    else if (name === 'contempt') { this.contemptSet = +value || 0; this.search.contempt = this.contemptSet; }
+    else if (name === 'bookfile') {
+      if (!value || value === '<empty>') return;
+      try {
+        const text = require('fs').readFileSync(value, 'utf8');
+        const before = this.book.lines;
+        this.book.load(text);
+        this.send(`info string loaded ${this.book.lines - before} book lines from ${value}`);
+      } catch (err) { this.send('info string cannot read book file: ' + err.message); }
+    }
+    else this.send('info string unknown option ' + m[1]);
+  }
+
+  command(line) {
+    const tok = line.trim().split(/\s+/);
+    const cmd = tok[0];
+    switch (cmd) {
+      case 'uci':
+        this.send('id name ' + ENGINE_NAME);
+        this.send('id author ' + ENGINE_AUTHOR);
+        this.send('option name Style type combo default Normal var Normal var Aggressive var Gambit');
+        this.send('option name OwnBook type check default true');
+        this.send('option name Contempt type spin default 0 min -100 max 100');
+        this.send('option name BookFile type string default <empty>');
+        this.send('uciok');
+        break;
+      case 'isready': this.send('readyok'); break;
+      case 'setoption': this.setOption(tok); break;
+      case 'book': {
+        if (tok[1] === 'add') {
+          const rest = line.trim().slice(line.indexOf('add') + 3).trim();
+          const parts = rest.split('|');
+          const n = parts.length === 3 ? this.book.addLine(parts[1], parts[2], parts[0].toUpperCase() === 'G') : this.book.addLine('Custom', rest, false);
+          this.send(n > 0 ? 'info string book line added' : 'info string ' + this.book.errors[this.book.errors.length - 1]);
+        } else {
+          const e = this.book.map.get(this.book.key(this.pos));
+          if (!e) this.send('info string no book moves here');
+          else for (const [uci, x] of e) this.send(`info string book ${uci} normal ${x.normal} gambit ${x.gambit} (${[...x.names].join(', ')})`);
+        }
+        break;
+      }
+      case 'ucinewgame': this.pos.setFen(START_FEN); this.search.clear(); break;
+      case 'position': this.position(tok); break;
+      case 'go': this.goCmd(tok); break;
+      case 'd': this.send(this.pos.display()); break;
+      case 'eval': this.send('eval ' + this.pos.evaluate() + ' (side to move)'); break;
+      case 'perft': {
+        const d = +tok[1] || 1, t = Date.now();
+        const n = this.pos.perft(d);
+        this.send(`perft ${d} nodes ${n} time ${Date.now() - t}`);
+        break;
+      }
+      case 'stop': case 'quit': case '': break;
+      default: this.send('Unknown command: ' + line.trim());
+    }
+  }
+
+  position(tok) {
+    let i = 1;
+    if (tok[i] === 'startpos') { this.pos.setFen(START_FEN); i++; }
+    else if (tok[i] === 'fen') {
+      const f = [];
+      i++;
+      while (i < tok.length && tok[i] !== 'moves') f.push(tok[i++]);
+      this.pos.setFen(f.join(' '));
+    }
+    if (tok[i] === 'moves') {
+      for (i++; i < tok.length; i++) {
+        const m = this.pos.parseMove(tok[i]);
+        if (!m) { this.send('info string illegal move ' + tok[i]); break; }
+        this.pos.make(m);
+      }
+    }
+    // keep repetition history but drop undo info not needed by search
+    this.pos.sp = 0;
+  }
+
+  goCmd(tok) {
+    if (this.ownBook && !tok.includes('perft')) {
+      const hit = this.book.probe(this.pos, this.style.bookGambit);
+      if (hit) {
+        this.send('info string book move ' + hit.move + ' (' + hit.names.join(', ') + ')');
+        this.send('bestmove ' + hit.move);
+        return { move: hit.move, book: true };
+      }
+    }
+    const o = {};
+    for (let i = 1; i < tok.length; i++) {
+      const k = tok[i], v = +tok[i + 1];
+      if (['wtime', 'btime', 'winc', 'binc', 'movestogo', 'depth', 'movetime', 'nodes'].includes(k)) { o[k] = v; i++; }
+      else if (k === 'infinite') o.infinite = true;
+      else if (k === 'perft') { this.command('perft ' + tok[i + 1]); return; }
+    }
+    let movetime = o.movetime || 0;
+    if (!movetime && !o.depth && !o.nodes && !o.infinite) {
+      const white = this.pos.side === WHITE;
+      const time = white ? o.wtime : o.btime, inc = (white ? o.winc : o.binc) || 0;
+      if (time !== undefined) {
+        const mtg = o.movestogo || 30;
+        movetime = Math.max(20, Math.min(time / mtg + inc * 0.8, time / 2) - 30);
+      } else movetime = 2000;
+    }
+    if (o.infinite && !o.depth) o.depth = 64;
+    return this.search.go({ depth: o.depth || 64, movetime, nodes: o.nodes || 0 });
+  }
+}
+
+// ---------- Environment glue ----------
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Engine, Position, ENGINE_NAME, STYLES };
+}
+
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
+  const engine = new Engine(line => process.stdout.write(line + '\n'));
+  const rl = require('readline').createInterface({ input: process.stdin });
+  rl.on('line', line => {
+    if (line.trim() === 'quit') { rl.close(); process.exit(0); }
+    engine.command(line);
+  });
+} else if (typeof self !== 'undefined' && typeof postMessage === 'function' && typeof window === 'undefined') {
+  const engine = new Engine(line => postMessage(line));
+  self.onmessage = e => engine.command(String(e.data));
+}
+
+</script>
+<!-- MOONLIGHT-ENGINE:END -->
+<script>
+'use strict';
+// ---------------- Config ----------------
+const params = new URLSearchParams(location.search);
+const SF_URL = new URL(params.get('sf') || 'https://cdn.jsdelivr.net/npm/stockfish@10.0.2/src/stockfish.asm.js', location.href).href;
+const GLYPH = ['', '♟\uFE0E', '♞\uFE0E', '♝\uFE0E', '♜\uFE0E', '♛\uFE0E', '♚\uFE0E'];
+// Cburnett chess pieces from Wikimedia Commons (CC BY-SA 3.0), hotlinked.
+const WIKI = 'https://upload.wikimedia.org/wikipedia/commons/';
+const PIECE_SVG = {
+  w: ['', '4/45/Chess_plt45.svg', '7/70/Chess_nlt45.svg', 'b/b1/Chess_blt45.svg', '7/72/Chess_rlt45.svg', '1/15/Chess_qlt45.svg', '4/42/Chess_klt45.svg'],
+  b: ['', 'c/c7/Chess_pdt45.svg', 'e/ef/Chess_ndt45.svg', '9/98/Chess_bdt45.svg', 'f/ff/Chess_rdt45.svg', '4/47/Chess_qdt45.svg', 'f/f0/Chess_kdt45.svg'],
+};
+let useImages = true;
+function pieceHtml(t, color, sq) {
+  const sqAttr = sq === undefined ? '' : ` data-sq="${sq}"`;
+  if (useImages) return `<img class="pc img" draggable="false" alt="" src="${WIKI + PIECE_SVG[color][t]}"${sqAttr} onerror="pieceImgFailed()">`;
+  return `<span class="pc ${color}"${sqAttr}>${GLYPH[t]}</span>`;
+}
+function pieceImgFailed() { if (useImages) { useImages = false; render(); } }
+const LETTER = ['', '', 'N', 'B', 'R', 'Q', 'K'];
+const CLS = {
+  brilliant:  { label: 'Brilliant',  sym: '!!', color: 'var(--brilliant)' },
+  great:      { label: 'Great',      sym: '!',  color: 'var(--great)' },
+  best:       { label: 'Best',       sym: '★',  color: 'var(--best)' },
+  excellent:  { label: 'Excellent',  sym: '✓',  color: 'var(--excellent)' },
+  good:       { label: 'Good',       sym: '✓',  color: 'var(--good)' },
+  book:       { label: 'Book',       sym: 'B',  color: 'var(--book)' },
+  inaccuracy: { label: 'Inaccuracy', sym: '?!', color: 'var(--inaccuracy)' },
+  mistake:    { label: 'Mistake',    sym: '?',  color: 'var(--mistake)' },
+  miss:       { label: 'Miss',       sym: '✕',  color: 'var(--miss)' },
+  blunder:    { label: 'Blunder',    sym: '??', color: 'var(--blunder)' },
+};
+const CLS_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'miss', 'blunder'];
+const PLAYERS = [
+  ['human', 'You'],
+  ['moon-Normal', 'Moonlight Lite 10 (Normal)'],
+  ['moon-Aggressive', 'Moonlight Lite 10 (Aggressive)'],
+  ['moon-Gambit', 'Moonlight Lite 10 (Gambit)'],
+  ['sf-0', 'Stockfish 10 (Level 0)'],
+  ['sf-5', 'Stockfish 10 (Level 5)'],
+  ['sf-10', 'Stockfish 10 (Level 10)'],
+  ['sf-15', 'Stockfish 10 (Level 15)'],
+  ['sf-20', 'Stockfish 10 (Full strength)'],
+  ['random', 'Random mover'],
+];
+const playerName = id => (PLAYERS.find(p => p[0] === id) || [0, id])[1];
+
+// ---------------- Engine wrapper ----------------
+class UciWorker {
+  constructor(factory, name) {
+    this.name = name; this.chain = Promise.resolve(); this.cur = null; this.failed = false;
+    try {
+      this.w = factory();
+      this.w.onmessage = e => this.onLine(String(e.data));
+      this.w.onerror = e => { this.fail(e.message || 'failed to load'); };
+    } catch (err) { this.fail(err.message); }
+  }
+  fail(msg) {
+    if (this.failed) return;
+    this.failed = true;
+    showNotice(this.name.startsWith('Stockfish')
+      ? `Stockfish could not be loaded (${msg}). It is downloaded from the internet when the page opens, so check your connection. Moonlight still works.`
+      : `${this.name} could not start (${msg}).`);
+    if (this.cur) { const c = this.cur; this.cur = null; c.res(null); }
+    refreshPlayerOptions();
+  }
+  onLine(line) {
+    if (!this.cur) return;
+    if (line.startsWith('info') && this.cur.onInfo) this.cur.onInfo(line);
+    else if (line.startsWith('bestmove')) { const c = this.cur; this.cur = null; c.res(line.split(/\s+/)[1]); }
+  }
+  request(cmds, onInfo) {
+    const run = () => new Promise(res => {
+      if (this.failed) return res(null);
+      this.cur = { res, onInfo };
+      for (const c of cmds) this.w.postMessage(c);
+    });
+    const p = this.chain.then(run);
+    this.chain = p.catch(() => {});
+    return p;
+  }
+  send(cmd) { if (!this.failed) this.w.postMessage(cmd); }
+}
+
+let moon, sfPlay, sfAna;
+function startEngines() {
+  const engineSrc = document.getElementById('moonlight-engine').textContent;
+  const moonUrl = URL.createObjectURL(new Blob([engineSrc], { type: 'application/javascript' }));
+  moon = new UciWorker(() => new Worker(moonUrl), 'Moonlight');
+  const blob = URL.createObjectURL(new Blob([`importScripts(${JSON.stringify(SF_URL)});`], { type: 'application/javascript' }));
+  sfPlay = new UciWorker(() => new Worker(blob), 'Stockfish');
+  sfAna = new UciWorker(() => new Worker(blob), 'Stockfish analysis');
+  moon.send('uci'); sfPlay.send('uci'); sfAna.send('uci');
+}
+
+// ---------------- Chess helpers (use Moonlight's rules) ----------------
+const bookRef = new Book(); bookRef.load(BOOK_LINES);
+function posFromFen(fen) { const p = new Position(); p.setFen(fen); return p; }
+function fenKey(fen) { return fen.split(' ').slice(0, 4).join(' '); }
+function toSan(pos, m) {
+  const from = mFrom(m), to = mTo(m), fl = mFlags(m), t = typeOf(pos.board[from]);
+  let san;
+  if (fl & F_CASTLE) san = (to & 7) === 6 ? 'O-O' : 'O-O-O';
+  else {
+    const cap = (fl & F_CAP) !== 0;
+    if (t === PAWN) san = (cap ? sqName(from)[0] + 'x' : '') + sqName(to);
+    else {
+      let dis = '';
+      const others = pos.legalMoves().filter(o => o !== m && mTo(o) === to && typeOf(pos.board[mFrom(o)]) === t);
+      if (others.length) {
+        const sameFile = others.some(o => (mFrom(o) & 7) === (from & 7));
+        const sameRank = others.some(o => (mFrom(o) >> 4) === (from >> 4));
+        if (!sameFile) dis = sqName(from)[0];
+        else if (!sameRank) dis = sqName(from)[1];
+        else dis = sqName(from);
+      }
+      san = LETTER[t] + dis + (cap ? 'x' : '') + sqName(to);
+    }
+    if (mPromo(m)) san += '=' + LETTER[mPromo(m)];
+  }
+  pos.make(m);
+  if (pos.inCheck()) san += pos.legalMoves().length ? '+' : '#';
+  pos.unmake();
+  return san;
+}
+function uciToSan(fen, uci) { const p = posFromFen(fen), m = p.parseMove(uci); return m ? toSan(p, m) : uci; }
+function pvToSan(fen, pv, max) {
+  const p = posFromFen(fen), out = [];
+  for (const u of pv.slice(0, max)) { const m = p.parseMove(u); if (!m) break; out.push(toSan(p, m)); p.make(m); }
+  return out.join(' ');
+}
+
+// ---------------- Game state ----------------
+const G = {
+  pos: new Position(), fens: [START_FEN], plies: [], view: 0, players: { w: 'human', b: 'moon-Normal' },
+  token: 0, result: null, reason: '', paused: false, flipped: false, reviewing: false, reviewed: false,
+};
+const cache = new Map(); // fenKey -> {depth, best, lines:[{cp, mate, pv}]}
+
+function newGame() {
+  G.token++;
+  G.pos = new Position(); G.fens = [START_FEN]; G.plies = []; G.view = 0;
+  G.players = { w: $('whiteSel').value, b: $('blackSel').value };
+  G.result = null; G.reason = ''; G.paused = false; G.reviewed = false; G.selected = -1;
+  G.flipped = G.players.w !== 'human' && G.players.b === 'human';
+  moon.send('ucinewgame'); sfPlay.send('ucinewgame');
+  $('pauseBtn').textContent = 'Pause';
+  resetReviewUI();
+  Sound.play('start');
+  render(); live(); nextTurn();
+}
+
+function sideToMove() { return G.pos.side === WHITE ? 'w' : 'b'; }
+
+function applyMove(uci, opts = {}) {
+  const fenBefore = G.fens[G.fens.length - 1];
+  const moverIsHuman = G.players[sideToMove()] === 'human';
+  const m = G.pos.parseMove(uci);
+  if (!m) return false;
+  const book = !!(bookRef.map.get(bookRef.key(G.pos)) || new Map()).get(uci);
+  const san = toSan(G.pos, m);
+  G.pos.make(m);
+  G.plies.push({ uci, san, fenBefore, book, side: fenBefore.split(' ')[1] });
+  G.fens.push(G.pos.fen());
+  G.view = G.plies.length; G.selected = -1;
+  checkGameOver();
+  if (!opts.dragged) pendingAnim = { uci, san, reverse: false };
+  Sound.play(moveSoundKind(san, moverIsHuman));
+  if (G.result) setTimeout(() => Sound.play(endSoundKind()), 260);
+  render(); live();
+  if (!G.result) setTimeout(nextTurn, 30);
+  else if (!G.reviewed) setTimeout(reviewGame, 400);
+  return true;
+}
+
+function checkGameOver() {
+  const p = G.pos;
+  const legal = p.legalMoves().length;
+  if (!legal) {
+    if (p.inCheck()) { G.result = p.side === WHITE ? '0-1' : '1-0'; G.reason = 'checkmate'; }
+    else { G.result = '1/2-1/2'; G.reason = 'stalemate'; }
+  } else if (p.half >= 100) { G.result = '1/2-1/2'; G.reason = '50-move rule'; }
+  else if (p.history.filter(h => h === p.h1).length >= 2) { G.result = '1/2-1/2'; G.reason = 'threefold repetition'; }
+  else {
+    const pcs = [];
+    for (let s = 0; s < 128; s++) if (!(s & 0x88) && p.board[s] && typeOf(p.board[s]) !== KING) pcs.push(typeOf(p.board[s]));
+    if (!pcs.length || (pcs.length === 1 && (pcs[0] === KNIGHT || pcs[0] === BISHOP))) { G.result = '1/2-1/2'; G.reason = 'insufficient material'; }
+  }
+}
+
+function nextTurn() {
+  if (G.result || G.paused) return;
+  const who = G.players[sideToMove()];
+  if (who === 'human') { setStatus('Your move.'); return; }
+  const token = G.token, ply = G.plies.length, time = +$('timeSel').value;
+  const moveList = G.plies.map(p => p.uci).join(' ');
+  const posCmd = 'position startpos' + (moveList ? ' moves ' + moveList : '');
+  setStatus(playerName(who) + ' is thinking…');
+  let req;
+  if (who.startsWith('moon-')) req = moon.request(['setoption name Style value ' + who.slice(5), posCmd, 'go movetime ' + time]);
+  else if (who.startsWith('sf-')) req = sfPlay.request(['setoption name Skill Level value ' + who.slice(3), posCmd, 'go movetime ' + time]);
+  else req = new Promise(r => setTimeout(() => { const l = G.pos.legalMoves(); r(G.pos.moveToUci(l[Math.floor(Math.random() * l.length)])); }, Math.min(time, 400)));
+  req.then(uci => {
+    if (token !== G.token || ply !== G.plies.length || G.result || G.paused) return;
+    if (!uci || uci === '(none)' || !applyMove(uci)) setStatus(playerName(who) + ' did not return a legal move.');
+  });
+}
+
+function undo() {
+  if (!G.plies.length) return;
+  let keep = G.plies.length - 1;
+  const humanSides = ['w', 'b'].filter(s => G.players[s] === 'human');
+  if (humanSides.length === 1) {
+    while (keep > 0 && G.plies[keep].side !== humanSides[0]) keep--;
+    if (G.plies[keep] && G.plies[keep].side !== humanSides[0]) keep = 0;
+  }
+  const moves = G.plies.slice(0, keep);
+  G.token++;
+  G.pos = new Position(); G.fens = [START_FEN]; G.plies = []; G.result = null; G.reason = ''; G.reviewed = false;
+  for (const p of moves) {
+    const m = G.pos.parseMove(p.uci);
+    G.pos.make(m); G.plies.push(p); G.fens.push(G.pos.fen());
+  }
+  G.view = G.plies.length; G.selected = -1;
+  resetReviewUI(); render(); live(); nextTurn();
+}
+
+// ---------------- Analysis ----------------
+function parseInfo(line, fen, store) {
+  const d = line.match(/ depth (\d+)/), mp = line.match(/ multipv (\d+)/), cp = line.match(/ score cp (-?\d+)/), mt = line.match(/ score mate (-?\d+)/), pv = line.match(/ pv (.+)$/);
+  if (!d || !pv || (!cp && !mt)) return;
+  const k = mp ? +mp[1] - 1 : 0;
+  store.lines[k] = { depth: +d[1], cp: cp ? +cp[1] : null, mate: mt ? +mt[1] : null, pv: pv[1].trim().split(/\s+/) };
+  store.depth = Math.max(store.depth, +d[1]);
+}
+function analyze(fen, depth, onUpdate) {
+  const key = fenKey(fen), hit = cache.get(key);
+  if (hit && hit.depth >= depth && hit.done) return Promise.resolve(hit);
+  const store = { depth: 0, lines: [], best: null, done: false };
+  return sfAna.request(['setoption name MultiPV value 2', 'position fen ' + fen, 'go depth ' + depth], line => {
+    parseInfo(line, fen, store);
+    if (onUpdate) onUpdate(store);
+  }).then(best => {
+    if (!best) return null;
+    store.best = best === '(none)' ? null : best; store.done = true;
+    store.lines = store.lines.filter(Boolean);
+    const prev = cache.get(key);
+    if (!prev || prev.depth <= store.depth) cache.set(key, store);
+    return store;
+  });
+}
+// score for the side to move, in centipawns (mates mapped to large values)
+function lineCp(l) { if (!l) return 0; if (l.mate !== null) return l.mate > 0 ? 100000 - l.mate : -100000 - l.mate; return l.cp; }
+function winPct(cp) {
+  if (cp >= 90000) return 100; if (cp <= -90000) return 0;
+  return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1);
+}
+function fmtScore(l, fen) {
+  if (!l) return '';
+  const whiteToMove = fen.split(' ')[1] === 'w';
+  if (l.mate !== null) { const m = whiteToMove ? l.mate : -l.mate; return (m > 0 ? '' : '-') + 'M' + Math.abs(l.mate); }
+  const c = (whiteToMove ? l.cp : -l.cp) / 100;
+  return (c > 0 ? '+' : '') + c.toFixed(2);
+}
+function whiteWin(store, fen) {
+  if (!store || !store.lines.length) return null;
+  const w = winPct(lineCp(store.lines[0]));
+  return fen.split(' ')[1] === 'w' ? w : 100 - w;
+}
+
+let liveBusy = false, liveWant = null;
+function live() {
+  liveWant = G.fens[G.view];
+  if (!liveBusy && !G.reviewing) runLive();
+}
+function runLive() {
+  if (sfAna.failed || !liveWant) return;
+  const fen = liveWant;
+  const cached = cache.get(fenKey(fen));
+  if (cached && cached.done && cached.depth >= 12) { updateEval(); return; }
+  liveBusy = true;
+  analyze(fen, 12, st => { if (fen === G.fens[G.view]) updateEval(st); }).then(() => {
+    liveBusy = false;
+    if (fen === G.fens[G.view]) updateEval();
+    if (liveWant !== fen && !G.reviewing) runLive();
+  });
+}
+
+// ---------------- Review ----------------
+function isSacrifice(fen, uci) {
+  const p = posFromFen(fen), m = p.parseMove(uci);
+  if (!m) return false;
+  const t = typeOf(p.board[mFrom(m)]);
+  if ((mFlags(m) & F_CAP) && t > PAWN && p.see(m) <= -200) return true;
+  p.make(m);
+  for (const c of p.legalMoves()) {
+    if (!(mFlags(c) & F_CAP)) continue;
+    const victim = typeOf(p.board[mTo(c)]);
+    if (victim >= KNIGHT && victim !== KING && p.see(c) >= 200) return true;
+  }
+  return false;
+}
+
+function classify(i) {
+  const ply = G.plies[i], before = cache.get(fenKey(ply.fenBefore)), afterFen = G.fens[i + 1], after = cache.get(fenKey(afterFen));
+  if (!before || !before.lines.length) return null;
+  const wBefore = winPct(lineCp(before.lines[0]));
+  let wAfter;
+  if (after && after.lines.length) wAfter = 100 - winPct(lineCp(after.lines[0]));
+  else {
+    const p = posFromFen(afterFen);
+    wAfter = p.legalMoves().length ? wBefore : (p.inCheck() ? 100 : 50);
+  }
+  const isBest = before.best === ply.uci || (before.lines[0].pv[0] === ply.uci);
+  const l2 = before.lines[1];
+  const gap = l2 ? Math.max(0, wBefore - winPct(lineCp(l2))) : 0;
+  let loss;
+  if (isBest) loss = 0;
+  else if (l2 && l2.pv[0] === ply.uci) loss = gap; // same-search comparison, less noisy
+  else loss = Math.max(0, wBefore - wAfter, l2 ? gap : 0); // worse than the second-best move
+  if (/#$/.test(ply.san)) loss = 0;
+  const acc = Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * loss) - 3.1669));
+  let cls;
+  const prev = i > 0 ? G.plies[i - 1].cls : null;
+  if (ply.book) cls = 'book';
+  else if (isBest || loss < 1) {
+    if (wBefore < 97 && wAfter >= 50 && isSacrifice(ply.fenBefore, ply.uci)) cls = 'brilliant';
+    else if (isBest && l2 && gap >= 20 && wBefore < 97) cls = 'great';
+    else cls = 'best';
+  }
+  else if (loss < 2) cls = 'excellent';
+  else if (loss < 5) cls = 'good';
+  else if (prev === 'blunder' && loss >= 10) cls = 'miss';
+  else if (loss < 10) cls = 'inaccuracy';
+  else if (loss < 20) cls = 'mistake';
+  else cls = 'blunder';
+  return { cls, loss, acc, wBefore, wAfter, best: before.best, bestLine: before.lines[0] };
+}
+
+async function reviewGame() {
+  if (G.reviewing || !G.plies.length) return;
+  if (sfAna.failed) { $('reviewBody').textContent = 'Review needs Stockfish, which could not be loaded.'; return; }
+  G.reviewing = true; G.reviewed = false;
+  const token = G.token, depth = +$('depthSel').value, total = G.fens.length;
+  $('progress').hidden = false; $('reviewBtn').disabled = true;
+  $('reviewBody').textContent = 'Analyzing positions…';
+  while (liveBusy) await new Promise(r => setTimeout(r, 50));
+  for (let i = 0; i < total; i++) {
+    if (token !== G.token) break;
+    const p = posFromFen(G.fens[i]);
+    if (p.legalMoves().length) await analyze(G.fens[i], depth);
+    $('progress').firstElementChild.style.width = ((i + 1) / total * 100) + '%';
+  }
+  G.reviewing = false; $('reviewBtn').disabled = false; $('progress').hidden = true;
+  if (token !== G.token) return;
+  for (let i = 0; i < G.plies.length; i++) Object.assign(G.plies[i], classify(i) || {});
+  G.reviewed = true;
+  renderReview(); render(); live();
+}
+
+function resetReviewUI() {
+  $('reviewBody').className = 'muted';
+  $('reviewBody').textContent = 'Finish a game or press Review game. Stockfish checks every position and grades each move.';
+  $('graph').hidden = true; $('progress').hidden = true;
+}
+
+function renderReview() {
+  const body = $('reviewBody');
+  body.className = '';
+  const acc = { w: [], b: [] }, counts = { w: {}, b: {} };
+  for (const p of G.plies) {
+    if (p.acc === undefined) continue;
+    acc[p.side].push(p.acc);
+    counts[p.side][p.cls] = (counts[p.side][p.cls] || 0) + 1;
+  }
+  const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : '–';
+  let html = `<div class="accRow">
+    <div class="accBox"><div class="who">${esc(playerName(G.players.w))}</div><div class="v">${avg(acc.w)}</div><div class="muted">accuracy</div></div>
+    <div class="accBox"><div class="who">${esc(playerName(G.players.b))}</div><div class="v">${avg(acc.b)}</div><div class="muted">accuracy</div></div></div>
+    <table class="counts">`;
+  for (const c of CLS_ORDER) {
+    html += `<tr><td>${counts.w[c] || 0}</td><td>${icon(c)} ${CLS[c].label}</td><td>${counts.b[c] || 0}</td></tr>`;
+  }
+  html += `</table><p class="muted" style="margin:10px 0 0">Grades follow a chess.com-style scale but are Moonlight's own approximation: each move is scored by how much it lowers the mover's winning chances according to Stockfish 10 at depth ${$('depthSel').value}. Shallow depths are noisy, so use 16 or more for games that matter.</p>`;
+  body.innerHTML = html;
+  $('graph').hidden = false;
+  drawGraph();
+}
+
+function drawGraph() {
+  const cv = $('graph'), ctx = cv.getContext('2d');
+  const W = cv.width = cv.clientWidth * devicePixelRatio, H = cv.height = 110 * devicePixelRatio;
+  ctx.clearRect(0, 0, W, H);
+  const pts = G.fens.map(f => whiteWin(cache.get(fenKey(f)), f));
+  const n = pts.length;
+  if (n < 2) return;
+  const x = i => i / (n - 1) * W, y = v => H - (v === null ? 50 : v) / 100 * H;
+  ctx.fillStyle = '#eef0f4';
+  ctx.beginPath(); ctx.moveTo(0, H);
+  pts.forEach((v, i) => ctx.lineTo(x(i), y(v)));
+  ctx.lineTo(W, H); ctx.fill();
+  ctx.strokeStyle = 'rgba(141,151,179,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+  G.plies.forEach((p, i) => {
+    if (!['blunder', 'mistake', 'miss', 'brilliant', 'great'].includes(p.cls)) return;
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--' + p.cls);
+    ctx.beginPath(); ctx.arc(x(i + 1), y(pts[i + 1]), 4 * devicePixelRatio, 0, 7); ctx.fill();
+  });
+  ctx.strokeStyle = '#f2d479'; ctx.lineWidth = 2 * devicePixelRatio;
+  ctx.beginPath(); ctx.moveTo(x(G.view), 0); ctx.lineTo(x(G.view), H); ctx.stroke();
+}
+
+
+// ---------------- Sound (synthesized with Web Audio, no audio files) ----------------
+const Sound = {
+  ctx: null,
+  on: (() => { try { return localStorage.getItem('moonlight-sound') !== 'off'; } catch (e) { return true; } })(),
+  ready() {
+    if (!this.on) return null;
+    if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; this.ctx = new AC(); }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  },
+  // a short wooden "tock": filtered noise burst plus a low thump
+  click(t0, gain = 0.5, freq = 1700) {
+    const c = this.ctx, len = 0.07, buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 6);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.1;
+    const g = c.createGain(); g.gain.value = gain;
+    src.connect(bp).connect(g).connect(c.destination); src.start(t0);
+    const o = c.createOscillator(), og = c.createGain();
+    o.frequency.setValueAtTime(190, t0); o.frequency.exponentialRampToValueAtTime(90, t0 + 0.06);
+    og.gain.setValueAtTime(gain * 0.9, t0); og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.07);
+    o.connect(og).connect(c.destination); o.start(t0); o.stop(t0 + 0.08);
+  },
+  tone(t0, freq, dur, gain = 0.18, type = 'sine') {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  },
+  play(kind) {
+    const c = this.ready(); if (!c) return;
+    const t = c.currentTime + 0.005;
+    switch (kind) {
+      case 'move': this.click(t, 0.55); break;
+      case 'opponent': this.click(t, 0.5, 1450); break;
+      case 'capture': this.click(t, 0.8, 1200); this.click(t + 0.045, 0.45, 2200); break;
+      case 'castle': this.click(t, 0.5); this.click(t + 0.11, 0.5, 1500); break;
+      case 'check': this.click(t, 0.55); this.tone(t + 0.02, 880, 0.18, 0.12, 'triangle'); this.tone(t + 0.02, 1320, 0.12, 0.05, 'sine'); break;
+      case 'promote': this.click(t, 0.55); this.tone(t + 0.03, 659, 0.12, 0.1); this.tone(t + 0.11, 988, 0.2, 0.1); break;
+      case 'start': this.tone(t, 523, 0.25, 0.12); this.tone(t + 0.12, 784, 0.4, 0.12); break;
+      case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(t + i * 0.09, f, 0.6 - i * 0.05, 0.11)); break;
+      case 'lose': [494, 392, 330].forEach((f, i) => this.tone(t + i * 0.13, f, 0.55, 0.11, 'triangle')); break;
+      case 'draw': this.tone(t, 440, 0.4, 0.1); this.tone(t + 0.16, 440, 0.45, 0.08); break;
+      case 'illegal': this.tone(t, 150, 0.12, 0.12, 'square'); break;
+    }
+  },
+};
+function moveSoundKind(san, byHuman) {
+  if (/[+#]$/.test(san)) return 'check';
+  if (san.includes('=')) return 'promote';
+  if (san.startsWith('O-O')) return 'castle';
+  if (san.includes('x')) return 'capture';
+  return byHuman ? 'move' : 'opponent';
+}
+function endSoundKind() {
+  if (G.result === '1/2-1/2') return 'draw';
+  const humans = ['w', 'b'].filter(s => G.players[s] === 'human');
+  if (humans.length !== 1) return 'win';
+  const humanWon = (G.result === '1-0') === (humans[0] === 'w');
+  return humanWon ? 'win' : 'lose';
+}
+
+// ---------------- Move animation ----------------
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let pendingAnim = null;
+function animatePieces() {
+  const a = pendingAnim; pendingAnim = null;
+  if (!a || reduceMotion) return;
+  const from = sqFromName(a.uci.slice(0, 2)), to = sqFromName(a.uci.slice(2, 4));
+  const pairs = [[from, to]];
+  const el0 = squares[idxOf(a.reverse ? from : to)].querySelector('.pc');
+  // castling: the king moves two files, so the rook moves too
+  if (el0 && Math.abs((from & 7) - (to & 7)) === 2 && /^O-O/.test(a.san || '')) {
+    const r = from & 0x70;
+    pairs.push((to & 7) === 6 ? [r + 7, r + 5] : [r + 0, r + 3]);
+  }
+  for (let [src, dst] of pairs) {
+    if (a.reverse) [src, dst] = [dst, src];
+    const el = squares[idxOf(dst)].querySelector('.pc');
+    if (!el) continue;
+    const s = squares[idxOf(src)].getBoundingClientRect(), d = squares[idxOf(dst)].getBoundingClientRect();
+    el.style.transition = 'none';
+    el.style.transform = `translate(${s.left - d.left}px, ${s.top - d.top}px)`;
+    el.style.zIndex = 20;
+    el.getBoundingClientRect(); // force layout so the start position applies
+    requestAnimationFrame(() => {
+      el.style.transition = `transform ${a.fast ? 110 : 170}ms cubic-bezier(.25,.8,.35,1)`;
+      el.style.transform = '';
+      el.addEventListener('transitionend', () => { el.style.zIndex = ''; el.style.transition = ''; }, { once: true });
+    });
+  }
+}
+
+// ---------------- Rendering ----------------
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const icon = c => `<span class="ic" style="background:${CLS[c].color}">${CLS[c].sym}</span>`;
+function setStatus(t) { $('status').textContent = t; }
+function showNotice(t) { $('notice').hidden = false; $('noticeText').textContent = t; }
+
+const boardEl = $('board');
+const squares = [];
+for (let i = 0; i < 64; i++) { const d = document.createElement('div'); d.className = 'sq'; boardEl.appendChild(d); squares.push(d); }
+function sqAt(i) { const r = G.flipped ? i >> 3 : 7 - (i >> 3), f = G.flipped ? 7 - (i & 7) : i & 7; return r * 16 + f; }
+function idxOf(sq) { const r = sq >> 4, f = sq & 7; return G.flipped ? r * 8 + (7 - f) : (7 - r) * 8 + f; }
+
+function render() {
+  const fen = G.fens[G.view], p = posFromFen(fen);
+  const lastPly = G.view > 0 ? G.plies[G.view - 1] : null;
+  const lastFrom = lastPly ? sqFromName(lastPly.uci.slice(0, 2)) : -1, lastTo = lastPly ? sqFromName(lastPly.uci.slice(2, 4)) : -1;
+  const targets = new Map();
+  if (G.selected >= 0) for (const m of p.legalMoves()) if (mFrom(m) === G.selected) targets.set(mTo(m), (mFlags(m) & F_CAP) !== 0);
+  const checkSq = p.inCheck() ? p.king[p.side >> 3] : -1;
+  for (let i = 0; i < 64; i++) {
+    const s = sqAt(i), el = squares[i], r = s >> 4, f = s & 7;
+    let cls = 'sq ' + ((r + f) % 2 ? 'l' : 'd');
+    if (s === lastFrom || s === lastTo) cls += ' last';
+    if (s === G.selected) cls += ' sel';
+    if (s === checkSq) cls += ' check';
+    el.className = cls; el.dataset.sq = s;
+    let html = '';
+    if ((i & 7) === 0) html += `<span class="coord r">${r + 1}</span>`;
+    if (i >> 3 === 7) html += `<span class="coord f">${'abcdefgh'[f]}</span>`;
+    const pc = p.board[s];
+    if (pc) html += pieceHtml(typeOf(pc), colorOf(pc) ? 'b' : 'w', s);
+    if (targets.has(s)) html += targets.get(s) ? '<span class="ring"></span>' : '<span class="dot"></span>';
+    if (lastPly && s === lastTo && lastPly.cls) html += `<span class="badge" style="background:${CLS[lastPly.cls].color}">${CLS[lastPly.cls].sym}</span>`;
+    el.innerHTML = html;
+  }
+  animatePieces();
+  drawArrows();
+  renderLabels(); renderMoves(); renderComment(); updateEval();
+  if (G.reviewed) drawGraph();
+  if (G.result) setStatus(`Game over: ${G.result} (${G.reason}).`);
+  $('pauseBtn').disabled = !!G.result;
+}
+
+function drawArrows() {
+  const svg = $('arrows');
+  svg.innerHTML = '';
+  if (!G.view || !G.reviewed) return;
+  const ply = G.plies[G.view - 1];
+  if (!ply.best || ply.best === ply.uci || ['best', 'brilliant', 'great', 'book'].includes(ply.cls)) return;
+  const a = sqFromName(ply.best.slice(0, 2)), b = sqFromName(ply.best.slice(2, 4));
+  const c = s => { const i = idxOf(s); return [(i & 7) + 0.5, (i >> 3) + 0.5]; };
+  const [x1, y1] = c(a), [x2, y2] = c(b);
+  const ang = Math.atan2(y2 - y1, x2 - x1), len = Math.hypot(x2 - x1, y2 - y1) - 0.28;
+  const ex = x1 + Math.cos(ang) * len, ey = y1 + Math.sin(ang) * len;
+  const hx = x1 + Math.cos(ang) * (len + 0.28), hy = y1 + Math.sin(ang) * (len + 0.28);
+  const px = Math.cos(ang + Math.PI / 2) * 0.2, py = Math.sin(ang + Math.PI / 2) * 0.2;
+  svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="rgba(124,195,107,.85)" stroke-width=".16" stroke-linecap="round"/>
+    <polygon points="${hx},${hy} ${ex + px},${ey + py} ${ex - px},${ey - py}" fill="rgba(124,195,107,.85)"/>`;
+}
+
+function renderLabels() {
+  const acc = s => { const a = G.plies.filter(p => p.side === s && p.acc !== undefined).map(p => p.acc); return a.length ? `${(a.reduce((x, y) => x + y, 0) / a.length).toFixed(1)}%` : ''; };
+  const lbl = s => `<span>${s === 'w' ? '○' : '●'} ${esc(playerName(G.players[s]))}</span><span class="acc">${acc(s)}</span>`;
+  $('topLabel').innerHTML = lbl(G.flipped ? 'w' : 'b');
+  $('bottomLabel').innerHTML = lbl(G.flipped ? 'b' : 'w');
+}
+
+function renderMoves() {
+  const el = $('moves');
+  let html = '';
+  G.plies.forEach((p, i) => {
+    if (p.side === 'w') html += `<div class="n">${(i >> 1) + 1}.</div>`;
+    else if (i === 0) html += `<div class="n">1.</div><div></div>`;
+    html += `<div class="mv${G.view === i + 1 ? ' cur' : ''}" data-ply="${i + 1}">${p.cls ? icon(p.cls) : ''}<span>${esc(p.san)}</span></div>`;
+  });
+  el.innerHTML = html;
+  const cur = el.querySelector('.cur');
+  if (cur) cur.scrollIntoView({ block: 'nearest' });
+}
+
+function renderComment() {
+  const el = $('comment');
+  if (!G.view) { el.className = 'muted'; el.textContent = G.plies.length ? 'Starting position.' : 'Moves appear here. Click any move to jump to it, or use the arrow keys.'; return; }
+  const p = G.plies[G.view - 1];
+  el.className = '';
+  if (!p.cls) { el.innerHTML = `<b>${esc(p.san)}</b>${p.book ? ' is a book move.' : ''}`; return; }
+  const bestSan = p.best ? uciToSan(p.fenBefore, p.best) : '';
+  const lossTxt = p.loss >= 1 ? ` It drops ${p.loss.toFixed(0)}% of winning chances.` : '';
+  const PHRASE = { brilliant: 'is brilliant', great: 'is a great move', best: 'is the best move', excellent: 'is excellent', good: 'is a good move',
+    book: 'is a book move', inaccuracy: 'is an inaccuracy', mistake: 'is a mistake', miss: 'is a miss', blunder: 'is a blunder' };
+  let txt = `${icon(p.cls)} <b>${esc(p.san)}</b> ${PHRASE[p.cls]}.`;
+  if (p.cls === 'brilliant') txt += ' A strong sacrifice.';
+  else if (p.cls === 'great') txt += ' The only move that keeps the advantage.';
+  else if (p.cls === 'miss') txt += ` The opponent's error went unpunished.`;
+  if (bestSan && p.best !== p.uci && !['best', 'book', 'brilliant', 'great'].includes(p.cls)) txt += ` Best was <b>${esc(bestSan)}</b>.`;
+  el.innerHTML = txt + lossTxt;
+}
+
+function updateEval(partial) {
+  const fen = G.fens[G.view];
+  const st = partial || cache.get(fenKey(fen));
+  const lines = $('lines');
+  if (!st || !st.lines.length) {
+    if (sfAna && sfAna.failed) { lines.textContent = 'Analysis unavailable: Stockfish did not load.'; }
+    return;
+  }
+  const w = whiteWin(st, fen);
+  $('evalWhite').style.height = w + '%';
+  const txt = fmtScore(st.lines[0], fen);
+  const et = $('evalText');
+  et.textContent = txt.replace('+', '');
+  const whiteAhead = w >= 50;
+  et.style.top = whiteAhead === !G.flipped ? 'auto' : '4px';
+  et.style.bottom = whiteAhead === !G.flipped ? '4px' : 'auto';
+  et.style.color = whiteAhead ? '#1b1f2b' : '#eef0f4';
+  $('evalbar').style.transform = G.flipped ? 'rotate(180deg)' : '';
+  et.style.transform = G.flipped ? 'rotate(180deg)' : '';
+  lines.innerHTML = st.lines.slice(0, 2).map(l => `<div><span class="sc">${fmtScore(l, fen)}</span>${esc(pvToSan(fen, l.pv, 8))}</div>`).join('') +
+    `<div class="muted">Stockfish 10, depth ${st.depth}${st.done ? '' : '…'}</div>`;
+}
+
+// ---------------- Input ----------------
+function canMoveNow() { return !G.result && !G.paused && G.view === G.plies.length && G.players[sideToMove()] === 'human'; }
+function tryMove(from, to, dragged = false) {
+  const cands = G.pos.legalMoves().filter(m => mFrom(m) === from && mTo(m) === to);
+  if (!cands.length) return false;
+  if (cands.length > 1) { askPromotion(cands, dragged); return true; }
+  applyMove(G.pos.moveToUci(cands[0]), { dragged });
+  return true;
+}
+function askPromotion(cands, dragged) {
+  const box = $('promoBtns'), dlg = $('promo'), white = G.pos.side === WHITE;
+  box.innerHTML = '';
+  for (const t of [QUEEN, ROOK, BISHOP, KNIGHT]) {
+    const m = cands.find(c => mPromo(c) === t);
+    const b = document.createElement('button');
+    b.innerHTML = pieceHtml(t, white ? 'w' : 'b');
+    b.firstElementChild.style.cssText = 'width:52px;height:52px;font-size:40px';
+    b.setAttribute('aria-label', ['', '', 'Knight', 'Bishop', 'Rook', 'Queen'][t]);
+    b.onclick = () => { dlg.close(); applyMove(G.pos.moveToUci(m), { dragged }); };
+    box.appendChild(b);
+  }
+  dlg.showModal();
+}
+
+let drag = null;
+boardEl.addEventListener('pointerdown', e => {
+  const sqEl = e.target.closest('.sq');
+  if (!sqEl) return;
+  const s = +sqEl.dataset.sq;
+  if (!canMoveNow()) {
+    if (G.view !== G.plies.length && !G.result) { G.view = G.plies.length; render(); live(); }
+    return;
+  }
+  const pc = G.pos.board[s];
+  if (G.selected >= 0 && G.selected !== s && tryMove(G.selected, s)) { G.selected = -1; return; }
+  if (G.selected >= 0 && G.selected !== s && !(pc && colorOf(pc) === G.pos.side)) Sound.play('illegal');
+  if (pc && colorOf(pc) === G.pos.side) {
+    G.selected = s; render();
+    const pcEl = squares[idxOf(s)].querySelector('.pc');
+    const gh = $('ghost');
+    gh.innerHTML = pcEl.outerHTML; gh.style.display = 'block'; gh.style.left = e.clientX + 'px'; gh.style.top = e.clientY + 'px';
+    pcEl.classList.add('drag');
+    drag = { from: s };
+    boardEl.setPointerCapture(e.pointerId);
+  } else { G.selected = -1; render(); }
+});
+boardEl.addEventListener('pointermove', e => { if (drag) { const gh = $('ghost'); gh.style.left = e.clientX + 'px'; gh.style.top = e.clientY + 'px'; } });
+boardEl.addEventListener('pointerup', e => {
+  if (!drag) return;
+  $('ghost').style.display = 'none';
+  const from = drag.from; drag = null;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const sqEl = el && el.closest && el.closest('.sq');
+  const target = sqEl ? +sqEl.dataset.sq : -1;
+  if (target >= 0 && target !== from && tryMove(from, target, true)) { G.selected = -1; return; }
+  if (target >= 0 && target !== from) {
+    const tp = G.pos.board[target];
+    if (!tp || colorOf(tp) !== G.pos.side) Sound.play('illegal');
+  }
+  render();
+});
+
+$('moves').addEventListener('click', e => { const mv = e.target.closest('.mv'); if (mv) goTo(+mv.dataset.ply); });
+function goTo(ply) {
+  const target = Math.max(0, Math.min(G.plies.length, ply));
+  if (target === G.view) return;
+  if (target === G.view + 1) {
+    const p = G.plies[target - 1];
+    pendingAnim = { uci: p.uci, san: p.san, reverse: false, fast: true };
+    Sound.play(moveSoundKind(p.san, true));
+  } else if (target === G.view - 1) {
+    const p = G.plies[G.view - 1];
+    pendingAnim = { uci: p.uci, san: p.san, reverse: true, fast: true };
+    Sound.play('move');
+  }
+  G.view = target; G.selected = -1; render(); live();
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') { goTo(G.view - 1); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { goTo(G.view + 1); e.preventDefault(); }
+  else if (e.key === 'Home') goTo(0);
+  else if (e.key === 'End') goTo(G.plies.length);
+});
+$('graph').addEventListener('click', e => { const r = e.target.getBoundingClientRect(); goTo(Math.round((e.clientX - r.left) / r.width * (G.fens.length - 1))); });
+
+$('newBtn').onclick = newGame;
+function syncSoundBtn() { $('soundBtn').textContent = Sound.on ? 'Sound on' : 'Sound off'; $('soundBtn').setAttribute('aria-pressed', String(Sound.on)); }
+$('soundBtn').onclick = () => {
+  Sound.on = !Sound.on;
+  try { localStorage.setItem('moonlight-sound', Sound.on ? 'on' : 'off'); } catch (e) {}
+  syncSoundBtn(); if (Sound.on) Sound.play('move');
+};
+syncSoundBtn();
+// browsers only allow audio after the first user interaction
+addEventListener('pointerdown', () => Sound.ready(), { once: true });
+$('flipBtn').onclick = () => { G.flipped = !G.flipped; render(); };
+$('undoBtn').onclick = undo;
+$('reviewBtn').onclick = () => { G.reviewed = false; reviewGame(); };
+$('pauseBtn').onclick = () => {
+  G.paused = !G.paused; G.token++;
+  $('pauseBtn').textContent = G.paused ? 'Resume' : 'Pause';
+  if (G.paused) setStatus('Paused.'); else nextTurn();
+};
+$('pgnBtn').onclick = () => {
+  const d = new Date(), tag = (k, v) => `[${k} "${v}"]`;
+  let pgn = [tag('Event', 'Moonlight Chess'), tag('Date', `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`),
+    tag('White', playerName(G.players.w)), tag('Black', playerName(G.players.b)), tag('Result', G.result || '*')].join('\n') + '\n\n';
+  pgn += G.plies.map((p, i) => (p.side === 'w' ? `${(i >> 1) + 1}. ` : '') + p.san).join(' ') + ' ' + (G.result || '*');
+  (navigator.clipboard ? navigator.clipboard.writeText(pgn) : Promise.reject()).then(() => setStatus('PGN copied to clipboard.'), () => { prompt('Copy the PGN:', pgn); });
+};
+addEventListener('resize', () => { if (G.reviewed) drawGraph(); });
+
+function refreshPlayerOptions() {
+  for (const id of ['whiteSel', 'blackSel']) {
+    const sel = $(id), val = sel.value;
+    sel.innerHTML = PLAYERS.map(([v, n]) => {
+      const off = (v.startsWith('sf-') && sfPlay && sfPlay.failed) || (v.startsWith('moon-') && moon && moon.failed);
+      return `<option value="${v}"${off ? ' disabled' : ''}>${esc(n)}${off ? ' (unavailable)' : ''}</option>`;
+    }).join('');
+    sel.value = val || (id === 'whiteSel' ? 'human' : 'moon-Normal');
+  }
+}
+
+// ---------------- Boot ----------------
+refreshPlayerOptions();
+$('whiteSel').value = 'human'; $('blackSel').value = 'moon-Normal';
+startEngines();
+newGame();
+</script>
+</body>
+</html>
